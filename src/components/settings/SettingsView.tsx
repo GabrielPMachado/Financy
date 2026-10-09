@@ -1,0 +1,130 @@
+import type { ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
+import type { ThemePreference } from '../../lib/theme';
+
+interface SettingsViewProps {
+  userName?: string;
+  userEmail?: string | null;
+  theme: ThemePreference;
+  onThemeChange: (theme: ThemePreference) => void;
+  expenseCategories: number;
+  incomeCategories: number;
+  cardsCount: number;
+  onOpenCategories: () => void;
+  onOpenCards: () => void;
+  onOpenPlanning: () => void;
+  onExportJSON: () => void;
+  onExportCSV: () => void;
+  onImportFile: (file: File) => void;
+  onLogout: () => void;
+}
+
+const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
+  { key: 'light', label: 'Claro' },
+  { key: 'dark', label: 'Escuro' },
+  { key: 'system', label: 'Sistema' },
+];
+
+function Group({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{label}</h3>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+const rowClass =
+  'w-full flex items-center justify-between gap-3 px-4 min-h-[52px] text-left text-[15px] text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition';
+
+function Row({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={rowClass}>
+      <span>{label}</span>
+      <span className="flex items-center gap-1 text-sm text-slate-400 dark:text-slate-500">
+        {value}
+        <ChevronRight className="w-4 h-4" />
+      </span>
+    </button>
+  );
+}
+
+export default function SettingsView(props: SettingsViewProps) {
+  const initial = (props.userName || props.userEmail || '?').charAt(0).toUpperCase();
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-4 flex items-center gap-3">
+        <div className="w-12 h-12 rounded-2xl bg-[#1c1c1e] dark:bg-white text-white dark:text-slate-900 flex items-center justify-center text-lg font-bold">
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{props.userName || 'Minha conta'}</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{props.userEmail}</p>
+        </div>
+      </div>
+
+      <Group label="Aparência">
+        <div className="px-4 py-3 space-y-2">
+          <p className="text-[15px] text-slate-900 dark:text-slate-100">Tema</p>
+          <div role="radiogroup" aria-label="Tema" className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            {THEME_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                role="radio"
+                aria-checked={props.theme === opt.key}
+                onClick={() => props.onThemeChange(opt.key)}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+                  props.theme === opt.key
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Group>
+
+      <Group label="Registro">
+        <Row label="Categorias de gasto" value={`${props.expenseCategories} ativas`} onClick={props.onOpenCategories} />
+        <Row label="Categorias de receita" value={`${props.incomeCategories} ativas`} onClick={props.onOpenCategories} />
+        <Row label="Cartões de crédito" value={`${props.cardsCount} ativos`} onClick={props.onOpenCards} />
+        <Row label="Planejamento" value="Dívidas e metas" onClick={props.onOpenPlanning} />
+      </Group>
+
+      <Group label="Seus dados">
+        <Row label="Exportar JSON" onClick={props.onExportJSON} />
+        <Row label="Exportar CSV" onClick={props.onExportCSV} />
+        <label className={`${rowClass} cursor-pointer`}>
+          <span>Importar JSON</span>
+          <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+          <input
+            type="file"
+            accept="application/json"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) props.onImportFile(file);
+              e.target.value = '';
+            }}
+          />
+        </label>
+      </Group>
+
+      <Group label="Conta">
+        <button
+          type="button"
+          onClick={props.onLogout}
+          className={`${rowClass} text-rose-600 dark:text-rose-400 font-semibold`}
+        >
+          Sair da conta
+        </button>
+      </Group>
+    </div>
+  );
+}

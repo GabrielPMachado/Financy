@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Doc de perfil do usuário (users/{uid}) e todas as subcoleções dele
+    // (despesas, receitas, investimentos, categorias, cartoes,
+    // simulacoesPendentes, e qualquer outra que vier a existir) só podem
+    // ser lidas/escritas pelo próprio dono autenticado.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{subcollection}/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

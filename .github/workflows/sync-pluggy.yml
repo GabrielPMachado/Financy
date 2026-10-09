@@ -1,0 +1,40 @@
+name: Sincronizar bancos (Open Finance)
+
+# Busca as transações novas do Nubank e do Mercado Pago (via MeuPluggy) e
+# grava no Firestore do Financy. Roda duas vezes por dia e pode ser disparado
+# manualmente em Actions > "Sincronizar bancos" > Run workflow.
+on:
+  schedule:
+    - cron: '0 9,21 * * *' # 06:00 e 18:00 no horário de Brasília (UTC-3)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-pluggy
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Sincronizar
+        run: node scripts/sync-pluggy.mjs
+        env:
+          PLUGGY_CLIENT_ID: ${{ secrets.PLUGGY_CLIENT_ID }}
+          PLUGGY_CLIENT_SECRET: ${{ secrets.PLUGGY_CLIENT_SECRET }}
+          PLUGGY_ITEM_IDS: ${{ secrets.PLUGGY_ITEM_IDS }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SYNC_USER_EMAIL: ${{ secrets.SYNC_USER_EMAIL }}

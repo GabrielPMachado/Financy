@@ -1,16 +1,76 @@
-# React + Vite
+# Financy
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Controle financeiro pessoal para web e Android (Capacitor), com login, sincronização em nuvem e importação automática das transações do **Nubank** e do **Mercado Pago** via Open Finance.
 
-Currently, two official plugins are available:
+## Recursos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Receitas, despesas e investimentos, com parcelamento e recorrência
+- Cartões de crédito com limite usado e pagamento de fatura
+- Categorias personalizadas, histórico com filtros e exportação (JSON/CSV)
+- Análise mensal por categoria, comparação com o mês anterior
+- Calculadora freelancer, pendências a receber e área de planejamento (com assistente de IA opcional)
+- Tema claro, escuro ou automático
+- Sincronização em tempo real entre dispositivos (Firebase) e funcionamento offline
+- Importação automática dos bancos duas vezes por dia (GitHub Actions + MeuPluggy)
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+React 19, TypeScript, Vite, Tailwind CSS 4, Recharts, Firebase (Auth + Firestore), Capacitor 8 (Android).
 
-## Expanding the ESLint configuration
+## Rodando localmente
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+cp .env.example .env.local   # preencha o que for usar
+npm run dev                  # http://localhost:3000
+npm run lint                 # checagem de tipos
+npm run build
+```
+
+### Android
+
+```bash
+npm run build
+npx cap sync android
+cd android && ./gradlew assembleDebug   # APK em android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+## Segurança dos dados
+
+As regras do Firestore (`firestore.rules`) só permitem que cada usuário autenticado leia e escreva os próprios dados em `users/{uid}`. Publique-as com `firebase deploy --only firestore:rules` ou pelo console.
+
+## Sincronização bancária (Open Finance)
+
+O script `scripts/sync-pluggy.mjs` busca as transações dos últimos dias na API da [Pluggy](https://pluggy.ai) e grava no Firestore do usuário:
+
+- contas correntes viram receitas e despesas;
+- compras no cartão viram despesas vinculadas ao cartão (que é criado automaticamente);
+- pagamentos de fatura feitos pela conta reduzem o limite usado do cartão;
+- cada lançamento tem um id fixo (`pluggy-<id>`), então rodar várias vezes **não duplica** e **não sobrescreve** edições feitas no app.
+
+> Transferências entre as suas próprias contas aparecem como saída em uma e entrada na outra.
+
+### Configuração única
+
+1. Crie contas em [meu.pluggy.ai](https://meu.pluggy.ai) (conectar os bancos) e em [dashboard.pluggy.ai](https://dashboard.pluggy.ai) (credenciais da aplicação), e vincule o conector **MeuPluggy** à aplicação.
+2. Preencha as variáveis do `.env.example` no seu `.env.local`.
+3. Teste a leitura, sem gravar nada: `npm run sync:pluggy:dry`
+4. Grave de verdade: `npm run sync:pluggy`
+
+### Automático (GitHub Actions)
+
+O workflow `.github/workflows/sync-pluggy.yml` roda todo dia às 06:00 e 18:00 (Brasília) e pode ser disparado manualmente em **Actions → Sincronizar bancos → Run workflow**. Cadastre em **Settings → Secrets and variables → Actions**:
+
+| Secret | Conteúdo |
+|---|---|
+| `PLUGGY_CLIENT_ID` | Client ID da aplicação Pluggy |
+| `PLUGGY_CLIENT_SECRET` | Client Secret da aplicação Pluggy |
+| `PLUGGY_ITEM_IDS` | IDs dos itens separados por vírgula |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON completo da conta de serviço do Firebase |
+| `SYNC_USER_EMAIL` | E-mail da conta do Financy que recebe os dados |
+
+**Mantenha este repositório privado.** Os segredos ficam só nos Secrets do GitHub e o script nunca imprime valores nem descrições de transações no log, apenas contagens.
+
+## Licença
+
+Uso pessoal.
