@@ -41,7 +41,7 @@ As regras do Firestore (`firestore.rules`) só permitem que cada usuário autent
 
 ## Sincronização bancária (Open Finance)
 
-O script `scripts/sync-pluggy.mjs` busca as transações dos últimos dias na API da [Pluggy](https://pluggy.ai) e grava no Firestore do usuário:
+O script `scripts/sync-pluggy.mjs` busca as transações a partir de 01/10/2026 (`SYNC_FROM`, configurável) na API da [Pluggy](https://pluggy.ai) e grava no Firestore do usuário:
 
 - contas correntes viram receitas e despesas;
 - compras no cartão viram despesas vinculadas ao cartão (que é criado automaticamente);

@@ -10,7 +10,8 @@
  *   PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET, PLUGGY_ITEM_IDS (separados por vírgula)
  *   FIREBASE_SERVICE_ACCOUNT  JSON da conta de serviço (inteiro, numa variável)
  *   SYNC_USER_EMAIL           e-mail da conta do Financy que recebe os dados
- *   SYNC_DAYS                 (opcional) janela de busca em dias, padrão 45
+ *   SYNC_FROM                 (opcional) só importa transações a partir desta data
+ *                             (AAAA-MM-DD). Padrão: 2026-10-01
  *
  * Segurança: o script nunca imprime segredos nem valores/descrições de
  * transações no log — só contagens. Os logs do GitHub Actions podem ser públicos.
@@ -25,7 +26,7 @@ try {
 
 const PLUGGY_API = 'https://api.pluggy.ai';
 const DRY_RUN = process.argv.includes('--dry');
-const WINDOW_DAYS = Number(process.env.SYNC_DAYS) || 45;
+const SYNC_FROM = /^\d{4}-\d{2}-\d{2}$/.test(process.env.SYNC_FROM || '') ? process.env.SYNC_FROM : '2026-10-01';
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -65,7 +66,7 @@ async function fetchAllTransactions(apiKey, accountId, from, to) {
     if (!data.next || data.results.length === 0) return all;
     cursor = data.next;
   }
-  console.warn('Aviso: limite de páginas atingido; reduza SYNC_DAYS se faltar algo.');
+  console.warn('Aviso: limite de páginas atingido; avance SYNC_FROM se faltar algo.');
   return all;
 }
 
@@ -166,6 +167,22 @@ async function createMissing(db, colRef, items) {
   return created;
 }
 
+/**
+ * Apaga importações antigas da Pluggy anteriores a SYNC_FROM. Só toca em
+ * documentos marcados com `source: 'pluggy'` — nunca em lançamentos criados
+ * à mão no app.
+ */
+async function pruneOldImports(db, colRef) {
+  const snap = await colRef.where('source', '==', 'pluggy').get();
+  const old = snap.docs.filter((d) => String(d.get('date') || '') < SYNC_FROM);
+  for (let i = 0; i < old.length; i += 400) {
+    const batch = db.batch();
+    old.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+  return old.length;
+}
+
 // --- Principal --------------------------------------------------------------
 
 async function main() {
@@ -174,9 +191,8 @@ async function main() {
   const itemIds = requireEnv('PLUGGY_ITEM_IDS').split(',').map((s) => s.trim()).filter(Boolean);
 
   const apiKey = await authenticate(clientId, clientSecret);
-  const to = new Date();
-  const from = new Date(to.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const iso = (d) => d.toISOString().slice(0, 10);
+  const from = SYNC_FROM;
+  const to = new Date().toISOString().slice(0, 10);
 
   const transactions = [];
   const cards = [];
@@ -191,8 +207,8 @@ async function main() {
     const itemCard = accounts.find((a) => a.type === 'CREDIT');
     for (const account of accounts) {
       if (account.type === 'CREDIT') cards.push(toFinancyCard(account, bankName));
-      const txs = await fetchAllTransactions(apiKey, account.id, iso(from), iso(to));
-      console.log(`  ${account.type} …${String(account.number || '').slice(-4)}: ${txs.length} transação(ões) em ${WINDOW_DAYS} dias`);
+      const txs = await fetchAllTransactions(apiKey, account.id, from, to);
+      console.log(`  ${account.type} …${String(account.number || '').slice(-4)}: ${txs.length} transação(ões) desde ${SYNC_FROM}`);
       txs.forEach((tx) => {
         const converted = toFinancyTransaction(tx, account, itemCard ? `pluggy-${itemCard.id}` : undefined);
         if (converted) transactions.push(converted);
@@ -210,6 +226,11 @@ async function main() {
 
   const { db, uid } = await openFirestore();
   const userRef = db.collection('users').doc(uid);
+  const prunedExpenses = await pruneOldImports(db, userRef.collection('despesas'));
+  const prunedIncome = await pruneOldImports(db, userRef.collection('receitas'));
+  if (prunedExpenses + prunedIncome > 0) {
+    console.log(`Removido: ${prunedExpenses} despesa(s) e ${prunedIncome} receita(s) importadas antes de ${SYNC_FROM}.`);
+  }
   const createdCards = await createMissing(db, userRef.collection('cartoes'), cards);
   const createdExpenses = await createMissing(
     db, userRef.collection('despesas'), transactions.filter((t) => t.collection === 'despesas'));
