@@ -11,7 +11,7 @@ Controle financeiro pessoal para web e Android (Capacitor), com login, sincroniz
 - Calculadora freelancer, pendências a receber e área de planejamento (com assistente de IA opcional)
 - Tema claro, escuro ou automático
 - Sincronização em tempo real entre dispositivos (Firebase) e funcionamento offline
-- Importação automática dos bancos duas vezes por dia (GitHub Actions + MeuPluggy)
+- Importação automática dos bancos de hora em hora (GitHub Actions + MeuPluggy)
 
 ## Stack
 
@@ -59,7 +59,7 @@ O script `scripts/sync-pluggy.mjs` busca as transações a partir de 01/10/2026 
 
 ### Automático (GitHub Actions)
 
-O workflow `.github/workflows/sync-pluggy.yml` roda todo dia às 06:00 e 18:00 (Brasília) e pode ser disparado manualmente em **Actions → Sincronizar bancos → Run workflow**. Cadastre em **Settings → Secrets and variables → Actions**:
+O workflow `.github/workflows/sync-pluggy.yml` roda de hora em hora (minuto 7) e pode ser disparado manualmente em **Actions → Sincronizar bancos → Run workflow**. Cadastre em **Settings → Secrets and variables → Actions**:
 
 | Secret | Conteúdo |
 |---|---|
