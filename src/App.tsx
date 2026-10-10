@@ -34,6 +34,7 @@ import { PlanningEdgePanel, PlannedDebt, PlannedInvestment } from './components/
 import Login from './components/auth/Login';
 import { subscribeUserData, saveUserDataToCloud, subscribeAuthState, logout, migrateLegacyDataIfNeeded, auth } from './lib/firebase';
 import { useThemePreference } from './lib/theme';
+import { useBankSync, setGithubToken } from './lib/githubSync';
 import { onIdTokenChanged, type User } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { QuickAddOverlay } from './native/quickAddOverlay';
@@ -1043,6 +1044,13 @@ export default function App() {
   // verdade, não só um scroll/atalho.
   const [activeView, setActiveView] = useState<'home' | 'analise' | 'contas' | 'config'>('home');
   const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const bankSync = useBankSync();
+
+  // Sem token configurado, leva direto aos Ajustes (onde ele é colado).
+  const handleSyncNow = () => {
+    if (!bankSync.hasToken) setActiveView('config');
+    void bankSync.start();
+  };
 
   // Preferência de tema (claro/escuro/sistema) — ver src/lib/theme.ts
   const [themePreference, setThemePreference] = useThemePreference();
@@ -1095,6 +1103,9 @@ export default function App() {
           eyebrow={VIEW_TITLES[activeView]?.eyebrow}
           title={VIEW_TITLES[activeView]?.title}
           onSeeDetails={activeView === 'home' ? () => setActiveView('analise') : undefined}
+          onSyncNow={handleSyncNow}
+          syncStatus={bankSync.state.status}
+          syncMessage={bankSync.state.message}
         />
 
         {/* HOME: últimas transações (histórico completo em "Ver todas") */}
@@ -1273,6 +1284,17 @@ export default function App() {
               reader.readAsText(file);
             }}
             onLogout={handleLogout}
+            bankSync={bankSync.state}
+            hasGithubToken={bankSync.hasToken}
+            onSyncNow={handleSyncNow}
+            onSaveGithubToken={(token) => {
+              setGithubToken(token);
+              bankSync.refreshTokenFlag();
+            }}
+            onClearGithubToken={() => {
+              setGithubToken('');
+              bankSync.refreshTokenFlag();
+            }}
           />
         )}
 

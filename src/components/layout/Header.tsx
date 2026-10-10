@@ -1,7 +1,7 @@
 import React, { memo, useState, useEffect } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import { Calendar, ChevronLeft, ChevronRight, ChevronDown, History, Smartphone, CheckCircle2, Plus, LogOut } from 'lucide-react';
+import { RefreshCw, Calendar, ChevronLeft, ChevronRight, ChevronDown, History, Smartphone, CheckCircle2, Plus, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { QuickAddOverlay } from '../../native/quickAddOverlay';
@@ -49,6 +49,10 @@ export interface HeaderProps {
   title?: string;
   /** Pílula "Ver detalhes" na base do cartão preto. */
   onSeeDetails?: () => void;
+  /** Botão "Sincronizar agora" (dispara o workflow de bancos) e o estado dele. */
+  onSyncNow?: () => void;
+  syncStatus?: 'idle' | 'starting' | 'running' | 'done' | 'error';
+  syncMessage?: string;
 }
 
 const defaultColors: Required<HeaderColors> = {
@@ -138,7 +142,11 @@ const Header = ({
   eyebrow,
   title,
   onSeeDetails,
+  onSyncNow,
+  syncStatus = 'idle',
+  syncMessage = '',
 }: HeaderProps) => {
+  const isSyncing = syncStatus === 'starting' || syncStatus === 'running';
   const greeting = (() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bom dia';
@@ -289,6 +297,19 @@ const Header = ({
             </button>
           </div>
 
+          {onSyncNow && (
+            <button
+              type="button"
+              onClick={onSyncNow}
+              disabled={isSyncing}
+              className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center shadow-md transition active:scale-95 shrink-0 disabled:opacity-70"
+              aria-label="Sincronizar bancos agora"
+              title="Sincronizar bancos agora"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+
           {/* Nova transação */}
           {onOpenNewTransaction && (
             <button
@@ -344,6 +365,21 @@ const Header = ({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
               </span>
               <span className="hidden sm:inline">Salvo localmente (sem conexão)</span>
+            </span>
+          )}
+
+          {syncStatus !== 'idle' && syncMessage && (
+            <span
+              role="status"
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                syncStatus === 'error'
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                  : syncStatus === 'done'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+              }`}
+            >
+              {syncMessage}
             </span>
           )}
 

@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { ThemePreference } from '../../lib/theme';
+import type { BankSyncState } from '../../lib/githubSync';
 
 interface SettingsViewProps {
   userName?: string;
@@ -17,6 +18,11 @@ interface SettingsViewProps {
   onExportCSV: () => void;
   onImportFile: (file: File) => void;
   onLogout: () => void;
+  bankSync: BankSyncState;
+  hasGithubToken: boolean;
+  onSyncNow: () => void;
+  onSaveGithubToken: (token: string) => void;
+  onClearGithubToken: () => void;
 }
 
 const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
@@ -48,6 +54,72 @@ function Row({ label, value, onClick }: { label: string; value?: string; onClick
         <ChevronRight className="w-4 h-4" />
       </span>
     </button>
+  );
+}
+
+function BankSyncGroup(props: Pick<SettingsViewProps, 'bankSync' | 'hasGithubToken' | 'onSyncNow' | 'onSaveGithubToken' | 'onClearGithubToken'>) {
+  const [tokenDraft, setTokenDraft] = useState('');
+  const busy = props.bankSync.status === 'starting' || props.bankSync.status === 'running';
+  const statusColor =
+    props.bankSync.status === 'error'
+      ? 'text-rose-600 dark:text-rose-400'
+      : props.bankSync.status === 'done'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : 'text-slate-400 dark:text-slate-500';
+
+  return (
+    <Group label="Bancos (Open Finance)">
+      <button type="button" onClick={props.onSyncNow} disabled={busy} className={`${rowClass} disabled:opacity-60`}>
+        <span>Sincronizar agora</span>
+        <RefreshCw className={`w-4 h-4 text-slate-400 dark:text-slate-500 ${busy ? 'animate-spin' : ''}`} />
+      </button>
+      {props.bankSync.message && (
+        <p role="status" className={`px-4 py-2.5 text-xs ${statusColor}`}>{props.bankSync.message}</p>
+      )}
+
+      {props.hasGithubToken ? (
+        <button type="button" onClick={props.onClearGithubToken} className={rowClass}>
+          <span>Token do GitHub</span>
+          <span className="text-sm text-slate-400 dark:text-slate-500">Configurado · remover</span>
+        </button>
+      ) : (
+        <form
+          className="px-4 py-3 space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (tokenDraft.trim()) {
+              props.onSaveGithubToken(tokenDraft.trim());
+              setTokenDraft('');
+            }
+          }}
+        >
+          <label htmlFor="github-token" className="block text-[15px] text-slate-900 dark:text-slate-100">
+            Token do GitHub
+          </label>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Crie um token restrito ao repositório financy, só com a permissão Actions (leitura e escrita). Ele fica salvo apenas neste aparelho.
+          </p>
+          <div className="flex gap-2">
+            <input
+              id="github-token"
+              type="password"
+              autoComplete="off"
+              value={tokenDraft}
+              onChange={(e) => setTokenDraft(e.target.value)}
+              placeholder="github_pat_…"
+              className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+            />
+            <button
+              type="submit"
+              disabled={!tokenDraft.trim()}
+              className="px-4 rounded-xl bg-[#1c1c1e] dark:bg-white text-white dark:text-slate-900 text-sm font-semibold disabled:opacity-40"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
+      )}
+    </Group>
   );
 }
 
@@ -96,6 +168,14 @@ export default function SettingsView(props: SettingsViewProps) {
         <Row label="Cartões de crédito" value={`${props.cardsCount} ativos`} onClick={props.onOpenCards} />
         <Row label="Planejamento" value="Dívidas e metas" onClick={props.onOpenPlanning} />
       </Group>
+
+      <BankSyncGroup
+        bankSync={props.bankSync}
+        hasGithubToken={props.hasGithubToken}
+        onSyncNow={props.onSyncNow}
+        onSaveGithubToken={props.onSaveGithubToken}
+        onClearGithubToken={props.onClearGithubToken}
+      />
 
       <Group label="Seus dados">
         <Row label="Exportar JSON" onClick={props.onExportJSON} />
