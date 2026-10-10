@@ -68,6 +68,22 @@ O workflow `.github/workflows/sync-pluggy.yml` roda de hora em hora (minuto 7) e
 | `PLUGGY_ITEM_IDS` | IDs dos itens separados por vírgula |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON completo da conta de serviço do Firebase |
 | `SYNC_USER_EMAIL` | E-mail da conta do Financy que recebe os dados |
+| `MEUPLUGGY_STORAGE_STATE` | Sessão do Meu Pluggy em base64 (opcional; ver acima) |
+
+### Atualização automática no Meu Pluggy
+
+A API da Pluggy não deixa atualizar itens do MeuPluggy, então o workflow abre o site
+(Playwright, em nuvem) e clica em **Atualizar** antes de sincronizar: Mercado Pago de
+hora em hora, Nubank às 06:00 e 18:00 (Brasília). Configuração única:
+
+1. `npm run meupluggy:login` — abre o Chrome; entre no Meu Pluggy. A sessão fica em `.auth/meupluggy.json` (ignorado pelo git).
+2. Gere o valor do secret (PowerShell) e cole em um novo secret **`MEUPLUGGY_STORAGE_STATE`**:
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes(".auth\meupluggy.json")) | Set-Clipboard
+   ```
+3. Quando a sessão expirar, a execução fica **vermelha** (o GitHub avisa por e-mail): repita os passos 1 e 2.
+
+Se o clique falhar, a sincronização segue com os dados que a Pluggy já tem.
 
 **Mantenha este repositório privado.** Os segredos ficam só nos Secrets do GitHub e o script nunca imprime valores nem descrições de transações no log, apenas contagens.
 
