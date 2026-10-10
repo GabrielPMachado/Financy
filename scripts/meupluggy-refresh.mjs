@@ -99,7 +99,9 @@ async function refreshBank(page, bank) {
 
 async function refresh() {
   if (banks.length === 0) throw new Error('Informe ao menos um banco, ex: "Mercado Pago".');
-  const browser = await chromium.launch({ headless: true });
+  // channel 'chromium' = Chromium completo no novo modo headless. Evita o
+  // "chrome-headless-shell", executável à parte que antivírus costumam bloquear.
+  const browser = await chromium.launch({ headless: true, channel: 'chromium' }).catch(() => chromium.launch({ headless: true }));
   const context = await browser.newContext({ storageState: loadState(), locale: 'pt-BR' });
   const page = await context.newPage();
   const failures = [];
