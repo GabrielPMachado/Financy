@@ -19,13 +19,34 @@ const SITE = 'https://meu.pluggy.ai';
 const STATE_FILE = '.auth/meupluggy.json';
 const [mode, ...banks] = process.argv.slice(2);
 
+/**
+ * Abre um navegador VISÍVEL para o login manual. Prefere um navegador já
+ * instalado (logins do Google costumam bloquear navegadores "de teste").
+ * Ordem: BROWSER_PATH (caminho do .exe do seu navegador) > Chrome > Edge >
+ * Chromium do Playwright (instale com: npx playwright install chromium).
+ */
+async function launchVisibleBrowser() {
+  const options = { headless: false, args: ['--disable-blink-features=AutomationControlled'] };
+  const attempts = [
+    ...(process.env.BROWSER_PATH ? [{ executablePath: process.env.BROWSER_PATH }] : []),
+    { channel: 'chrome' },
+    { channel: 'msedge' },
+    {},
+  ];
+  for (const attempt of attempts) {
+    try {
+      return await chromium.launch({ ...options, ...attempt });
+    } catch {
+      // tenta o próximo
+    }
+  }
+  throw new Error(
+    'Nenhum navegador encontrado. Rode "npx playwright install chromium" ou defina BROWSER_PATH com o caminho do .exe do seu navegador.'
+  );
+}
+
 async function login() {
-  // Usa o Chrome instalado (logins do Google costumam bloquear navegadores "de teste").
-  const browser = await chromium.launch({
-    channel: 'chrome',
-    headless: false,
-    args: ['--disable-blink-features=AutomationControlled'],
-  });
+  const browser = await launchVisibleBrowser();
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto(SITE);
