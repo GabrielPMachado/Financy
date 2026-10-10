@@ -133,6 +133,64 @@ function toFinancyCard(account, bankName) {
   };
 }
 
+// --- Saldos de abertura ------------------------------------------------------
+// O app só conhece as transações a partir de SYNC_FROM, mas as contas já tinham
+// dinheiro (e o cartão já tinha fatura) nessa data. Os lançamentos abaixo
+// completam a conta: abertura = saldo atual do banco - movimento desde SYNC_FROM.
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+function openingBalanceEntry(account, bankName, netSinceStart) {
+  const opening = round2(Number(account.balance) - netSinceStart);
+  if (Math.abs(opening) < 0.005) return null;
+  const isIncome = opening > 0;
+  return {
+    id: `pluggy-saldo-inicial-${account.id}`,
+    collection: isIncome ? 'receitas' : 'despesas',
+    otherCollection: isIncome ? 'despesas' : 'receitas',
+    data: {
+      description: `Saldo inicial — ${bankName}`,
+      amount: Math.abs(opening),
+      type: isIncome ? 'income' : 'expense',
+      category: 'Saldo inicial',
+      date: SYNC_FROM,
+      source: 'pluggy',
+    },
+  };
+}
+
+/** Fatura que já existia em SYNC_FROM: usado hoje = compras desde a data - pagamentos + fatura anterior. */
+function openingCardEntry(account, purchases, payments) {
+  const credit = account.creditData || {};
+  const limit = Number(credit.creditLimit) || 0;
+  const available = Number(credit.availableCreditLimit);
+  const usedNow = Number.isFinite(available) && limit > 0 ? limit - available : Number(account.balance) || 0;
+  const previous = round2(usedNow - purchases + payments);
+  if (previous < 0.005) return null;
+  return {
+    id: `pluggy-fatura-anterior-${account.id}`,
+    collection: 'despesas',
+    otherCollection: 'receitas',
+    data: {
+      description: 'Fatura anterior do cartão',
+      amount: previous,
+      type: 'expense',
+      category: 'Outras Despesas',
+      date: SYNC_FROM,
+      source: 'pluggy',
+      cardId: `pluggy-${account.id}`,
+    },
+  };
+}
+
+/** Sempre regrava (o valor depende do saldo de hoje) e limpa a cópia na coleção oposta. */
+async function upsertOpenings(db, userRef, openings) {
+  for (const entry of openings) {
+    await userRef.collection(entry.collection).doc(entry.id).set(entry.data);
+    await userRef.collection(entry.otherCollection).doc(entry.id).delete();
+  }
+}
+
 // --- Firestore --------------------------------------------------------------
 
 async function openFirestore() {
@@ -196,6 +254,7 @@ async function main() {
 
   const transactions = [];
   const cards = [];
+  const openings = [];
 
   for (const itemId of itemIds) {
     const item = await pluggy(`/items/${itemId}`, apiKey);
@@ -209,14 +268,29 @@ async function main() {
       if (account.type === 'CREDIT') cards.push(toFinancyCard(account, bankName));
       const txs = await fetchAllTransactions(apiKey, account.id, from, to);
       console.log(`  ${account.type} …${String(account.number || '').slice(-4)}: ${txs.length} transação(ões) desde ${SYNC_FROM}`);
+      let net = 0;
+      let purchases = 0;
+      let payments = 0;
       txs.forEach((tx) => {
+        const amount = Math.abs(Number(tx.amount));
+        if (account.type === 'CREDIT') {
+          if (tx.type === 'CREDIT') payments += amount;
+          else purchases += amount;
+        } else {
+          net += tx.type === 'CREDIT' ? amount : -amount;
+        }
         const converted = toFinancyTransaction(tx, account, itemCard ? `pluggy-${itemCard.id}` : undefined);
         if (converted) transactions.push(converted);
       });
+      const opening = account.type === 'CREDIT'
+        ? openingCardEntry(account, purchases, payments)
+        : openingBalanceEntry(account, bankName, net);
+      if (opening) openings.push(opening);
     }
   }
 
   const expenses = transactions.filter((t) => t.collection === 'despesas').length;
+  console.log(`Saldos de abertura calculados: ${openings.length}`);
   console.log(`Total lido: ${transactions.length} (${expenses} despesas, ${transactions.length - expenses} receitas), ${cards.length} cartão(ões)`);
 
   if (DRY_RUN) {
@@ -226,6 +300,7 @@ async function main() {
 
   const { db, uid } = await openFirestore();
   const userRef = db.collection('users').doc(uid);
+  await upsertOpenings(db, userRef, openings);
   const prunedExpenses = await pruneOldImports(db, userRef.collection('despesas'));
   const prunedIncome = await pruneOldImports(db, userRef.collection('receitas'));
   if (prunedExpenses + prunedIncome > 0) {
