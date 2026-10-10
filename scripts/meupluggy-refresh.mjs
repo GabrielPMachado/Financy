@@ -49,7 +49,7 @@ async function login() {
   const browser = await launchVisibleBrowser();
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(SITE);
+  await page.goto(SITE, { waitUntil: 'commit', timeout: 120_000 });
   console.log('Faça login na janela que abriu. Aguardando (até 5 min)…');
   await page.waitForURL(/meu\.pluggy\.ai\/(overview|connections|flow|assets)/, { timeout: 300_000 });
   await page.waitForTimeout(3000);
