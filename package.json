@@ -12,7 +12,8 @@
     "sync:pluggy": "node scripts/sync-pluggy.mjs",
     "sync:pluggy:dry": "node scripts/sync-pluggy.mjs --dry",
     "meupluggy:login": "node scripts/meupluggy-refresh.mjs login",
-    "meupluggy:refresh": "node scripts/meupluggy-refresh.mjs refresh"
+    "meupluggy:refresh": "node scripts/meupluggy-refresh.mjs refresh",
+    "meupluggy:export": "node scripts/meupluggy-export-state.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

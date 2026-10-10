@@ -77,10 +77,7 @@ A API da Pluggy não deixa atualizar itens do MeuPluggy, então o workflow abre 
 hora em hora, Nubank às 06:00 e 18:00 (Brasília). Configuração única:
 
 1. `npm run meupluggy:login` — abre o Chrome; entre no Meu Pluggy. A sessão fica em `.auth/meupluggy.json` (ignorado pelo git).
-2. Gere o valor do secret (PowerShell) e cole em um novo secret **`MEUPLUGGY_STORAGE_STATE`**:
-   ```powershell
-   [Convert]::ToBase64String([IO.File]::ReadAllBytes(".auth\meupluggy.json")) | Set-Clipboard
-   ```
+2. Rode `npm run meupluggy:export` (copia a sessão reduzida para a área de transferência) e cole em um novo secret **`MEUPLUGGY_STORAGE_STATE`**.
 3. Quando a sessão expirar, a execução fica **vermelha** (o GitHub avisa por e-mail): repita os passos 1 e 2.
 
 Se o clique falhar, a sincronização segue com os dados que a Pluggy já tem.
