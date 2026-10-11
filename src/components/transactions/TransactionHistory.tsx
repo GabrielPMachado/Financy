@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Search, Filter, ArrowUpRight, ArrowDownRight, Tag, Calendar, Trash2, Edit2, PlusCircle, X, PiggyBank, FolderPlus, Download, Upload, FileJson, FileSpreadsheet, List, CalendarRange } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryItem } from '../../App';
+import { compareNewestFirst, formatDateTime } from '../../lib/transactions';
 
 export interface Transaction {
   id: string;
@@ -10,6 +11,8 @@ export interface Transaction {
   type: 'income' | 'expense' | 'investment';
   category: string;
   date: string;
+  time?: string;
+  linkedFreelance?: { weekLabel?: string };
 }
 
 export type FilterType = 'all' | 'income' | 'expense' | 'investment';
@@ -153,7 +156,7 @@ export default function TransactionHistory({
     })
       // Ordem cronológica: dia mais recente no topo da lista, dia mais antigo
       // lá embaixo (datas em formato YYYY-MM-DD comparam certo como string).
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      .sort(compareNewestFirst);
   }, [transactions, filterType, selectedCategory, periodFilter, searchTerm]);
 
   // Agrupamento semanal das transações filtradas
@@ -219,7 +222,7 @@ export default function TransactionHistory({
         label,
         // Mesma ordem cronológica de cima: dia mais recente da semana no
         // topo, mais antigo embaixo.
-        transactions: [...txs].sort((a, b) => (b.date || '').localeCompare(a.date || '')),
+        transactions: [...txs].sort(compareNewestFirst),
         totalIncome,
         totalExpense,
         totalInvestment,
@@ -306,7 +309,9 @@ export default function TransactionHistory({
             </p>
             <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
               <Tag className="w-3 h-3 shrink-0" />
-              <span className="truncate">{item.category}</span>
+              <span className="truncate">
+                {item.linkedFreelance ? `Freelance${item.linkedFreelance.weekLabel ? ` · ${item.linkedFreelance.weekLabel}` : ''}` : item.category}
+              </span>
             </span>
           </div>
         </div>
@@ -317,7 +322,7 @@ export default function TransactionHistory({
               {sign}
               {formatCurrency(item.amount)}
             </p>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{item.date}</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{formatDateTime(item.date, item.time)}</p>
           </div>
           {onEditTransaction && (
             <button

@@ -15,7 +15,8 @@ import {
   Smartphone,
   Home,
   Settings,
-  ChevronRight
+  ChevronRight,
+  Link2
 } from 'lucide-react';
 import CategoryModal, { CategoryData } from './components/categories/CategoryModal';
 import SimulacaoGanhosModal from './components/simulations/SimulacaoGanhosModal';
@@ -29,12 +30,14 @@ import Charts from './components/dashboard/Charts';
 import RecentTransactions from './components/dashboard/RecentTransactions';
 import AnalysisView from './components/dashboard/AnalysisView';
 import SettingsView from './components/settings/SettingsView';
+import LinkPixModal from './components/simulations/LinkPixModal';
 import { CreditCardEdgePanel, CardConfig } from './components/cards/CreditCardEdgePanel';
 import { PlanningEdgePanel, PlannedDebt, PlannedInvestment } from './components/planning/PlanningEdgePanel';
 import Login from './components/auth/Login';
 import { subscribeUserData, saveUserDataToCloud, subscribeAuthState, logout, migrateLegacyDataIfNeeded, auth } from './lib/firebase';
 import { useThemePreference } from './lib/theme';
 import { useBankSync, setGithubToken } from './lib/githubSync';
+import { currentTimeHHMM, compareNewestFirst } from './lib/transactions';
 import { onIdTokenChanged, type User } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { QuickAddOverlay } from './native/quickAddOverlay';
@@ -59,6 +62,19 @@ export interface Transaction {
    *  paga — cada mês da recorrência conta só no próprio mês, como uma
    *  assinatura normal (ver CreditCardEdgePanel.tsx). */
   isRecurring?: boolean;
+  /** Horário do lançamento (HH:MM). Ordena junto com a data. */
+  time?: string;
+  /** Origem do lançamento; 'pluggy' = importado automaticamente do banco. */
+  source?: string;
+  /** Pagamento freelance ao qual este Pix recebido foi vinculado. */
+  linkedFreelance?: LinkedFreelance;
+}
+
+export interface LinkedFreelance {
+  weekLabel?: string;
+  /** Valor que a calculadora previa para a semana (o Pix pode vir diferente). */
+  expectedAmount: number;
+  date?: string;
 }
 
 export interface CategoryItem {
@@ -782,6 +798,9 @@ export default function App() {
     const linkedCardId = transactionType === 'expense' ? modalForm.cardId : undefined;
 
     const newTransactions: Transaction[] = [];
+    // Ao editar, preserva o que o formulário não mostra (hora, origem, vínculo com freelance...).
+    const previousTx = editingTransactionId ? transactions.find(t => t.id === editingTransactionId) : undefined;
+    const txTime = editingTransactionId ? previousTx?.time : currentTimeHHMM();
 
     if (modalForm.repeatType === 'installment' && (modalForm.installmentsCount || 2) > 1) {
       const count = modalForm.installmentsCount || 2;
@@ -796,6 +815,7 @@ export default function App() {
           type: transactionType,
           category: categoryName,
           date: itemDate,
+          time: i === 1 ? txTime : undefined,
           cardId: linkedCardId,
         });
       }
@@ -810,18 +830,21 @@ export default function App() {
           type: transactionType,
           category: categoryName,
           date: itemDate,
+          time: i === 0 ? txTime : undefined,
           cardId: linkedCardId,
           isRecurring: true,
         });
       }
     } else {
       newTransactions.push({
+        ...previousTx,
         id: editingTransactionId || Date.now().toString(),
         description: desc,
         amount: parsedAmount,
         type: transactionType,
         category: categoryName,
         date: baseDate,
+        time: txTime,
         cardId: linkedCardId,
       });
     }
@@ -873,10 +896,11 @@ export default function App() {
   };
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Data', 'Descrição', 'Valor', 'Tipo', 'Categoria'];
+    const headers = ['ID', 'Data', 'Hora', 'Descrição', 'Valor', 'Tipo', 'Categoria'];
     const rows = transactions.map(t => [
       t.id,
       t.date,
+      t.time || '',
       `"${t.description.replace(/"/g, '""')}"`,
       t.amount.toFixed(2),
       t.type,
@@ -1007,6 +1031,33 @@ export default function App() {
     return matchesType && matchesSearch;
   });
 
+  /**
+   * Vincula um Pix já recebido (receita importada do banco) a uma pendência
+   * freelance: o Pix vira "Freelance" e a pendência sai da lista. Não cria
+   * lançamento novo, então o valor não é contado duas vezes no saldo.
+   */
+  const handleLinkPixToPending = (transactionId: string) => {
+    if (!linkingPending) return;
+    const pending = linkingPending;
+    setTransactions(prev => prev.map(t =>
+      t.id === transactionId
+        ? {
+            ...t,
+            category: 'Freelance',
+            linkedFreelance: { weekLabel: pending.weekLabel, expectedAmount: pending.amount, date: pending.date },
+          }
+        : t
+    ));
+    setPendingSimulations(prev => prev.filter(item => item.id !== pending.id));
+    setLinkingPending(null);
+  };
+
+  // Receitas recebidas que ainda podem ser vinculadas a um freelance.
+  const pixCandidates = transactions
+    .filter(t => t.type === 'income' && !t.linkedFreelance && !t.description.startsWith('Saldo inicial'))
+    .sort(compareNewestFirst)
+    .slice(0, 40);
+
   // Formatador de moeda
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -1045,6 +1096,8 @@ export default function App() {
   const [activeView, setActiveView] = useState<'home' | 'analise' | 'contas' | 'config'>('home');
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const bankSync = useBankSync();
+  // Pendência freelance para a qual o usuário está escolhendo o Pix recebido.
+  const [linkingPending, setLinkingPending] = useState<PendingSimulation | null>(null);
 
   // Sem token configurado, leva direto aos Ajustes (onde ele é colado).
   const handleSyncNow = () => {
@@ -1229,11 +1282,11 @@ export default function App() {
                 </div>
                 <ul className="space-y-2.5">
                   {pendingSimulations.map((sim) => (
-                    <li key={sim.id}>
+                    <li key={sim.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden">
                       <button
                         type="button"
                         onClick={() => handleEditPendingSimulation(sim)}
-                        className="w-full flex items-center gap-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm px-4 py-3.5 min-h-[64px] text-left active:scale-[0.99] transition"
+                        className="w-full flex items-center gap-3 px-4 py-3.5 min-h-[64px] text-left active:bg-slate-50 dark:active:bg-slate-800/50 transition"
                       >
                         <span className="w-11 h-11 rounded-xl bg-[#1c1c1e] dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-bold shrink-0">
                           {(sim.weekLabel || 'F').charAt(0).toUpperCase()}
@@ -1242,11 +1295,18 @@ export default function App() {
                           <span className="block font-semibold text-[15px] text-slate-900 dark:text-slate-100 truncate">
                             {sim.weekLabel || 'Receita Freelance'}
                           </span>
-                          <span className="block text-xs text-slate-400 dark:text-slate-500">{sim.date}</span>
+                          <span className="block text-xs text-slate-400 dark:text-slate-500">Pagamento em {sim.date}</span>
                         </span>
                         <span className="font-semibold text-[15px] text-slate-900 dark:text-slate-100 tabular-nums shrink-0">
                           {formatCurrency(sim.amount)}
                         </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLinkingPending(sim)}
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 border-t border-slate-100 dark:border-slate-800 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition"
+                      >
+                        <Link2 className="w-4 h-4" /> Vincular Pix recebido
                       </button>
                     </li>
                   ))}
@@ -1414,6 +1474,15 @@ export default function App() {
         setPlannedInvestments={setPlannedInvestments}
         formatCurrency={formatCurrency}
         externalOpenSignal={openPlanningPanelSignal}
+      />
+
+      {/* Vincular Pix recebido a um pagamento freelance */}
+      <LinkPixModal
+        pending={linkingPending}
+        candidates={pixCandidates}
+        formatCurrency={formatCurrency}
+        onLink={handleLinkPixToPending}
+        onClose={() => setLinkingPending(null)}
       />
 
       {/* Modal de Transação (Nova / Editar) */}

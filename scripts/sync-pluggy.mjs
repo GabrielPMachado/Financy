@@ -70,6 +70,25 @@ async function fetchAllTransactions(apiKey, accountId, from, to) {
   return all;
 }
 
+// --- Data e hora (fuso de Brasília) -----------------------------------------
+// A Pluggy devolve timestamps em UTC (ex: 2026-10-09T01:45:59Z). Cortar os 10
+// primeiros caracteres joga compras das 22h–23h59 para o dia seguinte; por isso
+// convertemos para America/Sao_Paulo e guardamos também o horário (HH:MM).
+
+const BR_FORMAT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+
+/** Retorna { date: 'AAAA-MM-DD', time?: 'HH:MM' }. Datas sem hora real (meia-noite UTC) ficam sem horário. */
+function toBrazilDateTime(value) {
+  const raw = String(value);
+  if (raw.length <= 10 || /T00:00:00(\.0+)?Z?$/.test(raw)) return { date: raw.slice(0, 10) };
+  const parts = Object.fromEntries(BR_FORMAT.formatToParts(new Date(raw)).map((p) => [p.type, p.value]));
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+}
+
 // --- Conversão Pluggy -> modelo do Financy ----------------------------------
 
 const CATEGORY_KEYWORDS = [
@@ -102,7 +121,7 @@ function toFinancyTransaction(tx, account, cardIdForPayments) {
     amount: Math.round(Math.abs(Number(tx.amount)) * 100) / 100,
     type: isIncome ? 'income' : 'expense',
     category: pickCategory(tx.category, isIncome),
-    date: String(tx.date).slice(0, 10),
+    ...toBrazilDateTime(tx.date),
     source: 'pluggy',
   };
   if (isCreditCard) base.cardId = `pluggy-${account.id}`;
@@ -209,19 +228,30 @@ async function openFirestore() {
 }
 
 /** Grava só o que ainda não existe (não sobrescreve edições feitas no app). */
+let backfilled = 0;
+
 async function createMissing(db, colRef, items) {
   if (items.length === 0) return 0;
   const refs = items.map((i) => colRef.doc(i.id));
   const snaps = await db.getAll(...refs);
   const batch = db.batch();
   let created = 0;
+  let touched = false;
   snaps.forEach((snap, idx) => {
+    const { time, date, source } = items[idx].data;
     if (!snap.exists) {
       batch.set(refs[idx], items[idx].data);
       created++;
+      touched = true;
+    } else if (source === 'pluggy' && time && !snap.get('time')) {
+      // Lançamento importado antes de existir horário: completa só data e hora
+      // (não mexe em descrição/categoria que você tenha editado no app).
+      batch.update(refs[idx], { date, time });
+      backfilled++;
+      touched = true;
     }
   });
-  if (created > 0) await batch.commit();
+  if (touched) await batch.commit();
   return created;
 }
 
@@ -255,6 +285,7 @@ async function main() {
   const transactions = [];
   const cards = [];
   const openings = [];
+  const outsideWindowIds = [];
 
   for (const itemId of itemIds) {
     const item = await pluggy(`/items/${itemId}`, apiKey);
@@ -272,6 +303,11 @@ async function main() {
       let purchases = 0;
       let payments = 0;
       txs.forEach((tx) => {
+        // Pela data de Brasília, parte do que veio "de 01/10 (UTC)" é de 30/09: fora da janela.
+        if (toBrazilDateTime(tx.date).date < SYNC_FROM) {
+          outsideWindowIds.push(`pluggy-${tx.id}`);
+          return;
+        }
         const amount = Math.abs(Number(tx.amount));
         if (account.type === 'CREDIT') {
           if (tx.type === 'CREDIT') payments += amount;
@@ -301,6 +337,10 @@ async function main() {
   const { db, uid } = await openFirestore();
   const userRef = db.collection('users').doc(uid);
   await upsertOpenings(db, userRef, openings);
+  for (const id of outsideWindowIds) {
+    await userRef.collection('despesas').doc(id).delete();
+    await userRef.collection('receitas').doc(id).delete();
+  }
   const prunedExpenses = await pruneOldImports(db, userRef.collection('despesas'));
   const prunedIncome = await pruneOldImports(db, userRef.collection('receitas'));
   if (prunedExpenses + prunedIncome > 0) {
@@ -311,6 +351,7 @@ async function main() {
     db, userRef.collection('despesas'), transactions.filter((t) => t.collection === 'despesas'));
   const createdIncome = await createMissing(
     db, userRef.collection('receitas'), transactions.filter((t) => t.collection === 'receitas'));
+  if (backfilled > 0) console.log(`Horário completado em ${backfilled} lançamento(s) antigo(s).`);
   console.log(`Gravado: ${createdExpenses} despesa(s), ${createdIncome} receita(s), ${createdCards} cartão(ões) novos.`);
 }
 

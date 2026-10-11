@@ -1,5 +1,6 @@
 import { Plus, Tag } from 'lucide-react';
 import type { Transaction } from '../../App';
+import { compareNewestFirst } from '../../lib/transactions';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -25,7 +26,7 @@ export default function RecentTransactions({
   limit = 5,
 }: RecentTransactionsProps) {
   const recent = [...transactions]
-    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .sort(compareNewestFirst)
     .slice(0, limit);
 
   return (
@@ -71,7 +72,9 @@ export default function RecentTransactions({
                     <p className="font-semibold text-[15px] text-slate-900 dark:text-slate-100 truncate">{t.description}</p>
                     <p className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">
                       <Tag className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{t.category}</span>
+                      <span className="truncate">
+                        {t.linkedFreelance ? `Freelance${t.linkedFreelance.weekLabel ? ` · ${t.linkedFreelance.weekLabel}` : ''}` : t.category}
+                      </span>
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -82,7 +85,7 @@ export default function RecentTransactions({
                     >
                       {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
                     </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{toShortDate(t.date)}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{toShortDate(t.date)}{t.time ? ` · ${t.time}` : ''}</p>
                   </div>
                 </button>
               </li>
