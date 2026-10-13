@@ -53,7 +53,8 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # Guarda a sessão do Meu Pluggy entre execuções: o robô só faz login de novo
-      # (com e-mail e senha) quando ela expira, em vez de logar toda hora.
+      # (com e-mail e senha, se configurados) quando ela expira. Cada execução salva a
+      # sessão renovada, para ela não envelhecer como uma cópia parada.
       - name: Restaurar sessão do Meu Pluggy
         uses: actions/cache@v4
         with:
@@ -84,5 +85,5 @@ jobs:
       - name: Avisar se a atualização falhou
         if: steps.refresh.outcome == 'failure'
         run: |
-          echo "::error::A atualização no Meu Pluggy falhou (veja a etapa acima). Se for login: confira os secrets MEUPLUGGY_EMAIL e MEUPLUGGY_PASSWORD (ou se o site pediu verificação extra)."
+          echo "::error::A atualização no Meu Pluggy falhou (veja a etapa acima). Provável sessão expirada: rode npm run meupluggy:login, depois npm run meupluggy:export e atualize o secret MEUPLUGGY_STORAGE_STATE."
           exit 1
