@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { ThemePreference } from '../../lib/theme';
-import type { BankSyncState } from '../../lib/githubSync';
+import type { BankSyncState, SyncOptions } from '../../lib/githubSync';
 
 interface SettingsViewProps {
   userName?: string;
@@ -20,7 +20,7 @@ interface SettingsViewProps {
   onLogout: () => void;
   bankSync: BankSyncState;
   hasGithubToken: boolean;
-  onSyncNow: () => void;
+  onSyncNow: (options: SyncOptions) => void;
   onSaveGithubToken: (token: string) => void;
   onClearGithubToken: () => void;
 }
@@ -57,6 +57,13 @@ function Row({ label, value, onClick }: { label: string; value?: string; onClick
   );
 }
 
+const SYNC_ACTIONS: { label: string; hint: string; options: SyncOptions }[] = [
+  { label: 'Buscar agora (rápido)', hint: '~30 s', options: { refresh: false, bank: 'todos' } },
+  { label: 'Atualizar Mercado Pago', hint: '1–2 min', options: { refresh: true, bank: 'Mercado Pago' } },
+  { label: 'Atualizar Nubank', hint: '1–3 min', options: { refresh: true, bank: 'Nubank' } },
+  { label: 'Atualizar os dois bancos', hint: '2–4 min', options: { refresh: true, bank: 'todos' } },
+];
+
 function BankSyncGroup(props: Pick<SettingsViewProps, 'bankSync' | 'hasGithubToken' | 'onSyncNow' | 'onSaveGithubToken' | 'onClearGithubToken'>) {
   const [tokenDraft, setTokenDraft] = useState('');
   const busy = props.bankSync.status === 'starting' || props.bankSync.status === 'running';
@@ -69,10 +76,21 @@ function BankSyncGroup(props: Pick<SettingsViewProps, 'bankSync' | 'hasGithubTok
 
   return (
     <Group label="Bancos (Open Finance)">
-      <button type="button" onClick={props.onSyncNow} disabled={busy} className={`${rowClass} disabled:opacity-60`}>
-        <span>Sincronizar agora</span>
-        <RefreshCw className={`w-4 h-4 text-slate-400 dark:text-slate-500 ${busy ? 'animate-spin' : ''}`} />
-      </button>
+      {SYNC_ACTIONS.map((action) => (
+        <button
+          key={action.label}
+          type="button"
+          onClick={() => props.onSyncNow(action.options)}
+          disabled={busy}
+          className={`${rowClass} disabled:opacity-60`}
+        >
+          <span>{action.label}</span>
+          <span className="flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500">
+            {action.hint}
+            <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} />
+          </span>
+        </button>
+      ))}
       {props.bankSync.message && (
         <p role="status" className={`px-4 py-2.5 text-xs ${statusColor}`}>{props.bankSync.message}</p>
       )}

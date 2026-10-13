@@ -300,7 +300,7 @@ const Header = ({
           {onSyncNow && (
             <button
               type="button"
-              onClick={onSyncNow}
+              onClick={() => onSyncNow()}
               disabled={isSyncing}
               className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center shadow-md transition active:scale-95 shrink-0 disabled:opacity-70"
               aria-label="Sincronizar bancos agora"
@@ -371,7 +371,7 @@ const Header = ({
           {syncStatus !== 'idle' && syncMessage && (
             <span
               role="status"
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-2xl max-w-full text-left text-[11px] leading-snug font-semibold border ${
                 syncStatus === 'error'
                   ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                   : syncStatus === 'done'

@@ -1,4 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  MISSING_TOKEN_MESSAGE,
+  NETWORK_MESSAGE,
+  POLL_TIMEOUT_MESSAGE,
+  describeHttpError,
+  describeRunConclusion,
+  describeWorkflowFailure,
+  type GithubAction,
+  type SyncFailure,
+  type WorkflowStep,
+} from './syncErrors';
 
 /**
  * "Sincronizar agora": dispara o workflow de sincronização bancária no GitHub
@@ -13,7 +24,7 @@ const REPO = 'financy';
 const WORKFLOW_FILE = 'sync-pluggy.yml';
 const BRANCH = 'main';
 const TOKEN_KEY = 'financas_github_token';
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 4000;
 const POLL_TIMEOUT_MS = 6 * 60 * 1000;
 
 export type BankSyncStatus = 'idle' | 'starting' | 'running' | 'done' | 'error';
@@ -21,7 +32,21 @@ export type BankSyncStatus = 'idle' | 'starting' | 'running' | 'done' | 'error';
 export interface BankSyncState {
   status: BankSyncStatus;
   message: string;
+  /** Causa do erro (ex: 'sessao-expirada', 'token-invalido'); só quando status = 'error'. */
+  code?: string;
 }
+
+export type SyncBank = 'todos' | 'Mercado Pago' | 'Nubank';
+
+export interface SyncOptions {
+  /** true: pede ao Meu Pluggy para atualizar o banco antes (1 a 3 min). false: só busca (cerca de 30 s). */
+  refresh: boolean;
+  /** Banco a atualizar quando `refresh` é true. */
+  bank: SyncBank;
+}
+
+/** Botão do cabeçalho: atualiza só o Mercado Pago, o banco que mais muda. */
+export const DEFAULT_SYNC_OPTIONS: SyncOptions = { refresh: true, bank: 'Mercado Pago' };
 
 /**
  * Token embutido no build (VITE_GITHUB_SYNC_TOKEN no .env.local, que o git ignora),
@@ -47,6 +72,16 @@ export function setGithubToken(token: string): void {
   }
 }
 
+/** Erro com causa identificada: a mensagem já é a que o usuário vê. */
+class SyncFailureError extends Error {
+  readonly code: string;
+
+  constructor(failure: SyncFailure) {
+    super(failure.message);
+    this.code = failure.code;
+  }
+}
+
 function githubHeaders(token: string): HeadersInit {
   return {
     Authorization: `Bearer ${token}`,
@@ -55,14 +90,21 @@ function githubHeaders(token: string): HeadersInit {
   };
 }
 
-const WORKFLOW_URL = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_FILE}`;
+const REPO_API = `https://api.github.com/repos/${OWNER}/${REPO}/actions`;
+const WORKFLOW_URL = `${REPO_API}/workflows/${WORKFLOW_FILE}`;
 
-function describeHttpError(status: number): string {
-  if (status === 401) return 'Token do GitHub inválido ou expirado.';
-  if (status === 403 || status === 404) {
-    return 'O token não tem acesso a este repositório (precisa da permissão Actions: leitura e escrita).';
+/** fetch ao GitHub que já traduz falhas de rede e respostas de erro em SyncFailureError. */
+async function githubFetch(url: string, token: string, action: GithubAction, init: RequestInit = {}): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(url, { ...init, headers: { ...githubHeaders(token), ...init.headers } });
+  } catch {
+    throw new SyncFailureError({ code: 'rede', message: NETWORK_MESSAGE });
   }
-  return `O GitHub respondeu com erro ${status}.`;
+  if (!res.ok) {
+    throw new SyncFailureError(describeHttpError(res.status, action, res.headers.get('x-ratelimit-remaining') === '0'));
+  }
+  return res;
 }
 
 interface LatestRun {
@@ -72,15 +114,42 @@ interface LatestRun {
 }
 
 async function fetchLatestRun(token: string): Promise<LatestRun | null> {
-  const res = await fetch(`${WORKFLOW_URL}/runs?event=workflow_dispatch&per_page=1`, { headers: githubHeaders(token) });
-  if (!res.ok) throw new Error(describeHttpError(res.status));
+  const res = await githubFetch(`${WORKFLOW_URL}/runs?event=workflow_dispatch&per_page=1`, token, 'ler');
   const data = await res.json();
   return data.workflow_runs?.[0] ?? null;
 }
 
+/** Por que a execução falhou: lê as etapas do job e traduz a que acusou o motivo. */
+async function explainFailedRun(token: string, run: LatestRun): Promise<SyncFailure> {
+  if (run.conclusion !== 'failure') return describeRunConclusion(run.conclusion);
+  try {
+    const res = await githubFetch(`${REPO_API}/runs/${run.id}/jobs`, token, 'ler');
+    const data = await res.json();
+    const steps: WorkflowStep[] = (data.jobs ?? []).flatMap((job: { steps?: WorkflowStep[] }) => job.steps ?? []);
+    return describeWorkflowFailure(steps);
+  } catch {
+    return { code: 'falhou', message: 'A sincronização terminou com erro. Veja a execução no GitHub Actions.' };
+  }
+}
+
+function describeError(err: unknown, fallback: string): { message: string; code: string } {
+  if (err instanceof SyncFailureError) return { message: err.message, code: err.code };
+  return { message: fallback, code: 'desconhecida' };
+}
+
+function runningMessage(options: SyncOptions): string {
+  if (!options.refresh) return 'Buscando os lançamentos…';
+  return options.bank === 'todos' ? 'Atualizando os bancos…' : `Atualizando ${options.bank}…`;
+}
+
 const IDLE: BankSyncState = { status: 'idle', message: '' };
 
-export function useBankSync(): { state: BankSyncState; hasToken: boolean; start: () => Promise<void>; refreshTokenFlag: () => void } {
+export function useBankSync(): {
+  state: BankSyncState;
+  hasToken: boolean;
+  start: (options?: SyncOptions) => Promise<void>;
+  refreshTokenFlag: () => void;
+} {
   const [state, setState] = useState<BankSyncState>(IDLE);
   const [hasToken, setHasToken] = useState<boolean>(() => !!getGithubToken());
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,51 +160,58 @@ export function useBankSync(): { state: BankSyncState; hasToken: boolean; start:
 
   const refreshTokenFlag = useCallback(() => setHasToken(!!getGithubToken()), []);
 
-  const poll = useCallback((token: string, previousRunId: number | null, startedAt: number) => {
+  const poll = useCallback((token: string, previousRunId: number | null, startedAt: number, options: SyncOptions) => {
     pollTimer.current = setTimeout(async () => {
       try {
         const run = await fetchLatestRun(token);
         const isNewRun = run && run.id !== previousRunId;
         if (isNewRun && run.status === 'completed') {
-          setState(
-            run.conclusion === 'success'
-              ? { status: 'done', message: 'Sincronizado. Os lançamentos novos já aparecem no app.' }
-              : { status: 'error', message: 'A sincronização terminou com erro. Veja a execução no GitHub Actions.' }
-          );
+          if (run.conclusion === 'success') {
+            setState({ status: 'done', message: 'Sincronizado. Os lançamentos novos já aparecem no app.' });
+          } else {
+            const failure = await explainFailedRun(token, run);
+            setState({ status: 'error', message: failure.message, code: failure.code });
+          }
           return;
         }
         if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
-          setState({ status: 'error', message: 'Demorou mais que o esperado. Confira o andamento no GitHub Actions.' });
+          setState({ status: 'error', message: POLL_TIMEOUT_MESSAGE, code: 'tempo-esgotado-app' });
           return;
         }
-        setState({ status: 'running', message: 'Atualizando os bancos…' });
-        poll(token, previousRunId, startedAt);
+        setState({ status: 'running', message: runningMessage(options) });
+        poll(token, previousRunId, startedAt, options);
       } catch (err) {
-        setState({ status: 'error', message: err instanceof Error ? err.message : 'Falha ao acompanhar a sincronização.' });
+        const { message, code } = describeError(err, 'Falha ao acompanhar a sincronização.');
+        const lostConnection = code === 'rede';
+        setState({
+          status: 'error',
+          message: lostConnection ? 'Perdi a conexão ao acompanhar a sincronização. Ela pode ter terminado: confira o app em instantes.' : message,
+          code,
+        });
       }
     }, POLL_INTERVAL_MS);
   }, []);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (options: SyncOptions = DEFAULT_SYNC_OPTIONS) => {
     const token = getGithubToken();
     if (!token) {
-      setState({ status: 'error', message: 'Cole o token do GitHub nos Ajustes para usar este botão.' });
+      setState({ status: 'error', message: MISSING_TOKEN_MESSAGE, code: 'sem-token' });
       return;
     }
     if (pollTimer.current) clearTimeout(pollTimer.current);
     setState({ status: 'starting', message: 'Iniciando…' });
     try {
       const previous = await fetchLatestRun(token);
-      const res = await fetch(`${WORKFLOW_URL}/dispatches`, {
+      await githubFetch(`${WORKFLOW_URL}/dispatches`, token, 'iniciar', {
         method: 'POST',
-        headers: { ...githubHeaders(token), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref: BRANCH }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: BRANCH, inputs: { refresh: String(options.refresh), banks: options.bank } }),
       });
-      if (!res.ok) throw new Error(describeHttpError(res.status));
-      setState({ status: 'running', message: 'Atualizando os bancos…' });
-      poll(token, previous?.id ?? null, Date.now());
+      setState({ status: 'running', message: runningMessage(options) });
+      poll(token, previous?.id ?? null, Date.now(), options);
     } catch (err) {
-      setState({ status: 'error', message: err instanceof Error ? err.message : 'Não foi possível iniciar a sincronização.' });
+      const { message, code } = describeError(err, 'Não foi possível iniciar a sincronização.');
+      setState({ status: 'error', message, code });
     }
   }, [poll]);
 

@@ -2,14 +2,29 @@ name: Sincronizar bancos (Open Finance)
 
 # 1) Pede ao site do Meu Pluggy para atualizar os bancos (a API não permite);
 # 2) busca as transações novas do Nubank e do Mercado Pago e grava no Firestore.
-# Mercado Pago: toda hora. Nubank: 06:00 e 18:00 (Brasília). Também dá para
-# disparar manualmente em Actions > "Sincronizar bancos" > Run workflow
-# (manual atualiza os dois).
-# (O GitHub agenda sozinho: não precisa de git push para o horário funcionar.)
+# Agendado: Mercado Pago toda hora; Nubank também às 06:00 e 18:00 (Brasília).
+# Manual (botão do app ou Actions > Run workflow): dá para escolher
+#   - refresh: "true" pede a atualização ao Meu Pluggy (1 a 3 min); "false" só
+#     busca o que o Meu Pluggy já tem (cerca de 30 s, sem abrir navegador);
+#   - banks: qual banco atualizar quando refresh = true.
+# As etapas "Falha [codigo]" só rodam quando algo dá errado: o app lê o nome
+# delas para mostrar uma mensagem diferente por causa. Não renomeie os códigos
+# sem atualizar src/lib/syncErrors.ts.
 on:
   schedule:
     - cron: '7 * * * *' # a cada hora, no minuto 7 (evita o pico das horas cheias)
   workflow_dispatch:
+    inputs:
+      refresh:
+        description: 'Pedir atualização ao Meu Pluggy antes de sincronizar'
+        type: choice
+        options: ['true', 'false']
+        default: 'true'
+      banks:
+        description: 'Banco a atualizar (quando refresh = true)'
+        type: choice
+        options: ['todos', 'Mercado Pago', 'Nubank']
+        default: 'todos'
 
 permissions:
   contents: read
@@ -33,29 +48,45 @@ jobs:
       - name: Instalar dependências
         run: npm ci --ignore-scripts
 
-      - name: Escolher bancos a atualizar
-        id: banks
+      - name: Escolher o que fazer
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_REFRESH: ${{ inputs.refresh }}
+          IN_BANKS: ${{ inputs.banks }}
         run: |
           HOUR=$(date -u +%H)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$HOUR" = "09" ] || [ "$HOUR" = "21" ]; then
-            echo 'list="Mercado Pago" "Nubank"' >> "$GITHUB_OUTPUT"
-          else
-            echo 'list="Mercado Pago"' >> "$GITHUB_OUTPUT"
+          REFRESH=true
+          LIST='"Mercado Pago"'
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            REFRESH="${IN_REFRESH:-true}"
+            case "$IN_BANKS" in
+              "Mercado Pago") LIST='"Mercado Pago"' ;;
+              "Nubank") LIST='"Nubank"' ;;
+              *) LIST='"Mercado Pago" "Nubank"' ;;
+            esac
+          elif [ "$HOUR" = "09" ] || [ "$HOUR" = "21" ]; then
+            LIST='"Mercado Pago" "Nubank"'
           fi
+          echo "refresh=$REFRESH" >> "$GITHUB_OUTPUT"
+          echo "list=$LIST" >> "$GITHUB_OUTPUT"
 
       - name: Cache do Chromium (Playwright)
+        if: steps.plan.outputs.refresh == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Instalar Chromium
+        if: steps.plan.outputs.refresh == 'true'
         run: npx playwright install --with-deps chromium
 
       # Guarda a sessão do Meu Pluggy entre execuções: o robô só faz login de novo
       # (com e-mail e senha, se configurados) quando ela expira. Cada execução salva a
       # sessão renovada, para ela não envelhecer como uma cópia parada.
       - name: Restaurar sessão do Meu Pluggy
+        if: steps.plan.outputs.refresh == 'true'
         uses: actions/cache@v4
         with:
           path: .auth
@@ -64,14 +95,17 @@ jobs:
 
       - name: Atualizar no Meu Pluggy
         id: refresh
+        if: steps.plan.outputs.refresh == 'true'
         continue-on-error: true # se falhar, ainda sincroniza com o que já existe
-        run: node scripts/meupluggy-refresh.mjs refresh ${{ steps.banks.outputs.list }}
+        run: node scripts/meupluggy-refresh.mjs refresh ${{ steps.plan.outputs.list }}
         env:
           MEUPLUGGY_STORAGE_STATE: ${{ secrets.MEUPLUGGY_STORAGE_STATE }}
           MEUPLUGGY_EMAIL: ${{ secrets.MEUPLUGGY_EMAIL }}
           MEUPLUGGY_PASSWORD: ${{ secrets.MEUPLUGGY_PASSWORD }}
 
       - name: Sincronizar
+        id: sync
+        continue-on-error: true # deixa o job reportar o motivo nas etapas abaixo
         run: node scripts/sync-pluggy.mjs
         env:
           PLUGGY_CLIENT_ID: ${{ secrets.PLUGGY_CLIENT_ID }}
@@ -80,10 +114,43 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           SYNC_USER_EMAIL: ${{ secrets.SYNC_USER_EMAIL }}
 
-      # Deixa a execução vermelha (e o GitHub te avisa por e-mail) se a
-      # atualização no Meu Pluggy falhou, por exemplo sessão expirada.
-      - name: Avisar se a atualização falhou
-        if: steps.refresh.outcome == 'failure'
-        run: |
-          echo "::error::A atualização no Meu Pluggy falhou (veja a etapa acima). Provável sessão expirada: rode npm run meupluggy:login, depois npm run meupluggy:export e atualize o secret MEUPLUGGY_STORAGE_STATE."
-          exit 1
+      # --- Motivos de falha (uma etapa por causa; só a que corresponde roda) ---
+      # Atualização no Meu Pluggy (não impede o sync, mas deixa a execução vermelha).
+      - name: Falha [sem-sessao]
+        if: steps.refresh.outputs.reason == 'sem-sessao'
+        run: echo "::error::Sem sessão do Meu Pluggy. Rode npm run meupluggy:setup." && exit 1
+      - name: Falha [sessao-expirada]
+        if: steps.refresh.outputs.reason == 'sessao-expirada'
+        run: echo "::error::Sessão do Meu Pluggy expirada. Rode npm run meupluggy:setup ou npm run meupluggy:renew." && exit 1
+      - name: Falha [login-falhou]
+        if: steps.refresh.outputs.reason == 'login-falhou'
+        run: echo "::error::O login automático no Meu Pluggy não funcionou." && exit 1
+      - name: Falha [banco-nao-encontrado]
+        if: steps.refresh.outputs.reason == 'banco-nao-encontrado'
+        run: echo "::error::O banco não aparece nas Conexões do Meu Pluggy." && exit 1
+      - name: Falha [meupluggy-fora]
+        if: steps.refresh.outputs.reason == 'meupluggy-fora'
+        run: echo "::error::O Meu Pluggy não carregou ou não respondeu a tempo." && exit 1
+      - name: Falha [atualizar-outro]
+        if: steps.refresh.outputs.reason == 'atualizar-outro'
+        run: echo "::error::A atualização no Meu Pluggy falhou por outro motivo (veja o log)." && exit 1
+      # Sincronização com a Pluggy e o Firestore.
+      - name: Falha [sync-config]
+        if: steps.sync.outputs.reason == 'sync-config'
+        run: echo "::error::Faltam secrets do repositório para a sincronização." && exit 1
+      - name: Falha [pluggy-auth]
+        if: steps.sync.outputs.reason == 'pluggy-auth'
+        run: echo "::error::A Pluggy recusou o Client ID/Secret." && exit 1
+      - name: Falha [pluggy-api]
+        if: steps.sync.outputs.reason == 'pluggy-api'
+        run: echo "::error::A API da Pluggy falhou ou não respondeu." && exit 1
+      - name: Falha [firebase]
+        if: steps.sync.outputs.reason == 'firebase'
+        run: echo "::error::Não foi possível gravar no Firestore." && exit 1
+      - name: Falha [sync-outro]
+        if: steps.sync.outputs.reason == 'sync-outro'
+        run: echo "::error::A sincronização falhou por outro motivo (veja o log)." && exit 1
+      # Garantia: se uma etapa falhou sem informar o motivo, a execução fica vermelha.
+      - name: Falha [desconhecida]
+        if: (steps.refresh.outcome == 'failure' && steps.refresh.outputs.reason == '') || (steps.sync.outcome == 'failure' && steps.sync.outputs.reason == '')
+        run: echo "::error::Uma etapa falhou sem informar o motivo (veja o log)." && exit 1

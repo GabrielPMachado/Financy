@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "sync:pluggy": "node scripts/sync-pluggy.mjs",
     "sync:pluggy:dry": "node scripts/sync-pluggy.mjs --dry",
+    "sync:dispatch": "node scripts/dispatch-sync.mjs",
     "meupluggy:login": "node scripts/meupluggy-refresh.mjs login",
     "meupluggy:refresh": "node scripts/meupluggy-refresh.mjs refresh",
     "meupluggy:export": "node scripts/meupluggy-export-state.mjs",

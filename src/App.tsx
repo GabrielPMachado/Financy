@@ -36,7 +36,7 @@ import { PlanningEdgePanel, PlannedDebt, PlannedInvestment } from './components/
 import Login from './components/auth/Login';
 import { subscribeUserData, saveUserDataToCloud, subscribeAuthState, logout, migrateLegacyDataIfNeeded, auth } from './lib/firebase';
 import { useThemePreference } from './lib/theme';
-import { useBankSync, setGithubToken } from './lib/githubSync';
+import { useBankSync, setGithubToken, type SyncOptions } from './lib/githubSync';
 import { currentTimeHHMM, compareNewestFirst } from './lib/transactions';
 import { onIdTokenChanged, type User } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
@@ -1100,9 +1100,9 @@ export default function App() {
   const [linkingPending, setLinkingPending] = useState<PendingSimulation | null>(null);
 
   // Sem token configurado, leva direto aos Ajustes (onde ele é colado).
-  const handleSyncNow = () => {
+  const handleSyncNow = (options?: SyncOptions) => {
     if (!bankSync.hasToken) setActiveView('config');
-    void bankSync.start();
+    void bankSync.start(options);
   };
 
   // Preferência de tema (claro/escuro/sistema) — ver src/lib/theme.ts

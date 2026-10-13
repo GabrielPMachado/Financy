@@ -15,7 +15,7 @@
  *      expira (dura ~1 dia e meio) ou não existe. A senha só é digitada no site do
  *      Meu Pluggy e nunca é impressa. MEUPLUGGY_FORCE_LOGIN=1 força esse caminho (teste).
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const SITE = 'https://meu.pluggy.ai';
@@ -62,7 +62,29 @@ async function login() {
   console.log(`Sessão salva em ${STATE_FILE}. Esse arquivo é um segredo: não commite nem compartilhe.`);
 }
 
-class SessionExpiredError extends Error {}
+/** Erro com um código curto; o workflow o repassa ao app (uma mensagem diferente por causa). */
+class RefreshError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
+
+class SessionExpiredError extends RefreshError {
+  constructor() {
+    super('sessao-expirada', 'Sessão do Meu Pluggy expirada.');
+  }
+}
+
+function codeOf(err) {
+  if (err instanceof RefreshError) return err.code;
+  return err?.name === 'TimeoutError' ? 'meupluggy-fora' : 'atualizar-outro';
+}
+
+/** Grava o motivo da falha como saída da etapa do GitHub Actions (`reason`). */
+function reportReason(code) {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `reason=${code}\n`);
+}
 
 /** Sessão salva (arquivo mais recente > secret), ou undefined se não houver. */
 function loadSavedState() {
@@ -75,11 +97,11 @@ function loadSavedState() {
 }
 
 /** Entra no Meu Pluggy com e-mail e senha (login por formulário, sem Google). */
-async function loginWithCredentials(page) {
+async function loginWithCredentials(page, missingCredentialsCode) {
   const email = process.env.MEUPLUGGY_EMAIL;
   const password = process.env.MEUPLUGGY_PASSWORD;
   if (!email || !password) {
-    throw new Error('Sem sessão válida e sem MEUPLUGGY_EMAIL/MEUPLUGGY_PASSWORD para entrar sozinho.');
+    throw new RefreshError(missingCredentialsCode, 'Sem sessão válida e sem MEUPLUGGY_EMAIL/MEUPLUGGY_PASSWORD para entrar sozinho.');
   }
 
   await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -107,7 +129,7 @@ async function loginWithCredentials(page) {
   try {
     await page.waitForURL(/meu\.pluggy\.ai\/(overview|connections|flow|assets)/, { timeout: 60_000 });
   } catch {
-    throw new Error('O login automático não chegou ao painel (senha incorreta, verificação extra ou captcha?).');
+    throw new RefreshError('login-falhou', 'O login automático não chegou ao painel (senha incorreta, verificação extra ou captcha?).');
   }
   console.log('Login automático no Meu Pluggy concluído.');
 }
@@ -117,7 +139,7 @@ async function refreshBank(page, bank) {
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
   const here = new URL(page.url());
   if (/login|signin|sign-in|auth/i.test(here.pathname) || /auth0/i.test(here.hostname)) {
-    throw new SessionExpiredError('Sessão do Meu Pluggy expirada.');
+    throw new SessionExpiredError();
   }
 
   const card = page.getByText(bank, { exact: true }).first();
@@ -126,9 +148,12 @@ async function refreshBank(page, bank) {
   } catch {
     // Sem o card: ou a sessão caiu (tela de login) ou a conexão realmente não existe.
     if (await page.locator('input[type="password"], input[type="email"], input[name="username"]').first().isVisible().catch(() => false)) {
-      throw new SessionExpiredError('Sessão do Meu Pluggy expirada.');
+      throw new SessionExpiredError();
     }
-    throw new Error(`Conexão "${bank}" não encontrada na tela de Conexões.`);
+    if (await page.getByText(/não conseguimos carregar/i).first().isVisible().catch(() => false)) {
+      throw new RefreshError('meupluggy-fora', 'O Meu Pluggy não conseguiu carregar as conexões (instabilidade do serviço).');
+    }
+    throw new RefreshError('banco-nao-encontrado', `Conexão "${bank}" não encontrada na tela de Conexões.`);
   }
   await card.click();
   await page.waitForURL(/\/connections\/[0-9a-f-]{36}/, { timeout: 20_000 });
@@ -157,14 +182,15 @@ async function refresh() {
   const page = await context.newPage();
 
   let loggedInThisRun = false;
-  const autoLogin = async () => {
-    await loginWithCredentials(page);
+  const autoLogin = async (missingCredentialsCode) => {
+    await loginWithCredentials(page, missingCredentialsCode);
     loggedInThisRun = true;
   };
 
   const failures = [];
+  const reasons = [];
   try {
-    if (!savedState) await autoLogin();
+    if (!savedState) await autoLogin('sem-sessao');
     for (const bank of banks) {
       try {
         try {
@@ -172,16 +198,18 @@ async function refresh() {
         } catch (err) {
           if (!(err instanceof SessionExpiredError) || loggedInThisRun) throw err;
           console.log('Sessão expirada: entrando com e-mail e senha…');
-          await autoLogin();
+          await autoLogin('sessao-expirada');
           await refreshBank(page, bank);
         }
       } catch (err) {
         failures.push(err.message);
+        reasons.push(codeOf(err));
         console.error(`${bank}: ${err.message}`);
       }
     }
   } catch (err) {
     failures.push(err.message);
+    reasons.push(codeOf(err));
     console.error(err.message);
   }
 
@@ -191,7 +219,10 @@ async function refresh() {
     await context.storageState({ path: STATE_FILE });
   }
   await browser.close();
-  if (failures.length > 0) process.exit(1);
+  if (failures.length > 0) {
+    reportReason(reasons[0]);
+    process.exit(1);
+  }
 }
 
 (mode === 'login' ? login() : mode === 'refresh' ? refresh() : Promise.reject(new Error('Use: login | refresh <banco…>')))

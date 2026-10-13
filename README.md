@@ -103,6 +103,15 @@ O PC precisa estar ligado ao menos uma vez a cada ~12 h.
 
 Se o clique falhar, a sincronização segue com os dados que a Pluggy já tem.
 
+#### Velocidade e horário
+
+- **No app** (Ajustes > Bancos): *Buscar agora* (~30 s, sem pedir atualização ao Meu Pluggy), *Atualizar Mercado Pago*, *Atualizar Nubank* ou os dois. O botão de atualizar do topo atualiza só o Mercado Pago.
+- **Horário confiável:** o agendamento do GitHub atrasa e pula horas. `powershell -ExecutionPolicy Bypass -File scripts\install-sync-task.ps1` cria uma tarefa no Windows que dispara o workflow de hora em hora (Nubank também às 06h e 18h de Brasília). Precisa do PC ligado e de `VITE_GITHUB_SYNC_TOKEN` (ou `GITHUB_DISPATCH_TOKEN`) no `.env.local`; log em `.auth/dispatch.log`.
+
+#### Mensagens de erro
+
+O app mostra uma mensagem diferente para cada causa (token inválido, sem permissão, workflow desatualizado, sem internet, sessão do Meu Pluggy expirada, Meu Pluggy fora do ar, Pluggy recusou o Client ID/Secret, falha ao gravar no Firestore…). Elas vêm das etapas `Falha [codigo]` do workflow, traduzidas em `src/lib/syncErrors.ts`.
+
 **Mantenha este repositório privado.** Os segredos ficam só nos Secrets do GitHub e o script nunca imprime valores nem descrições de transações no log, apenas contagens.
 
 ## Licença

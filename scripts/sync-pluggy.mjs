@@ -16,7 +16,7 @@
  * Segurança: o script nunca imprime segredos nem valores/descrições de
  * transações no log — só contagens. Os logs do GitHub Actions podem ser públicos.
  */
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 
 try {
   process.loadEnvFile('.env.local');
@@ -28,10 +28,25 @@ const PLUGGY_API = 'https://api.pluggy.ai';
 const DRY_RUN = process.argv.includes('--dry');
 const SYNC_FROM = /^\d{4}-\d{2}-\d{2}$/.test(process.env.SYNC_FROM || '') ? process.env.SYNC_FROM : '2026-10-01';
 
+/** Erro com código curto; o workflow o repassa ao app (uma mensagem diferente por causa). */
+class SyncError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** Grava o motivo da falha como saída da etapa do GitHub Actions (`reason`). */
+function reportReason(code) {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `reason=${code}
+`);
+}
+
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) {
     console.error(`Variável de ambiente ausente: ${name}`);
+    reportReason('sync-config');
     process.exit(1);
   }
   return value;
@@ -40,8 +55,10 @@ function requireEnv(name) {
 async function pluggy(path, apiKey, params = {}) {
   const url = new URL(path, PLUGGY_API);
   Object.entries(params).forEach(([k, v]) => v !== undefined && url.searchParams.set(k, String(v)));
-  const res = await fetch(url, { headers: { 'X-API-KEY': apiKey, accept: 'application/json' } });
-  if (!res.ok) throw new Error(`Pluggy ${path} respondeu ${res.status}`);
+  const res = await fetch(url, { headers: { 'X-API-KEY': apiKey, accept: 'application/json' } }).catch(() => {
+    throw new SyncError('pluggy-api', `Não foi possível falar com a Pluggy (${path}).`);
+  });
+  if (!res.ok) throw new SyncError('pluggy-api', `Pluggy ${path} respondeu ${res.status}`);
   return res.json();
 }
 
@@ -50,8 +67,10 @@ async function authenticate(clientId, clientSecret) {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({ clientId, clientSecret }),
+  }).catch(() => {
+    throw new SyncError('pluggy-api', 'Não foi possível falar com a Pluggy (/auth).');
   });
-  if (!res.ok) throw new Error(`Autenticação na Pluggy falhou (${res.status}). Confira o Client ID/Secret.`);
+  if (!res.ok) throw new SyncError('pluggy-auth', `Autenticação na Pluggy falhou (${res.status}). Confira o Client ID/Secret.`);
   return (await res.json()).apiKey;
 }
 
@@ -334,6 +353,14 @@ async function main() {
     return;
   }
 
+  try {
+    await writeToFirestore(openings, outsideWindowIds, cards, transactions);
+  } catch (err) {
+    throw err instanceof SyncError ? err : new SyncError('firebase', err.message);
+  }
+}
+
+async function writeToFirestore(openings, outsideWindowIds, cards, transactions) {
   const { db, uid } = await openFirestore();
   const userRef = db.collection('users').doc(uid);
   await upsertOpenings(db, userRef, openings);
@@ -357,5 +384,6 @@ async function main() {
 
 main().catch((err) => {
   console.error('Falha na sincronização:', err.message);
+  reportReason(err instanceof SyncError ? err.code : 'sync-outro');
   process.exit(1);
 });
