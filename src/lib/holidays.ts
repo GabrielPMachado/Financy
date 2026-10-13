@@ -19,7 +19,10 @@ const FIXED_HOLIDAYS: Record<string, string> = {
 };
 
 /** Feriados estaduais/municipais: { 'MM-DD': 'Nome' }. */
-export const EXTRA_HOLIDAYS: Record<string, string> = {};
+export const EXTRA_HOLIDAYS: Record<string, string> = {
+  '02-02': 'Nossa Senhora dos Navegantes (Porto Alegre)',
+  '09-20': 'Dia do Gaúcho (RS)',
+};
 
 /** Domingo de Páscoa (algoritmo de Meeus/Jones/Butcher). */
 function easterSunday(year: number): Date {
