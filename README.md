@@ -85,9 +85,21 @@ Configuração:
 2. `npm run meupluggy:export` copia a sessão; cole no secret **`MEUPLUGGY_STORAGE_STATE`**. Só é preciso na primeira vez e quando a sessão cair.
 3. Se a sessão cair, a execução fica **vermelha** (o GitHub avisa por e-mail): repita 1 e 2.
 
-*Contas com e-mail e senha* (sem Google) podem cadastrar os secrets `MEUPLUGGY_EMAIL` e
-`MEUPLUGGY_PASSWORD`: aí o robô entra sozinho quando a sessão expira. Login com Google
-não funciona em modo automático (o Google bloqueia navegadores de servidor).
+#### Renovação automática da sessão (login com Google)
+
+Se a sessão cair (o Meu Pluggy desloga a cada ~1 dia e meio), uma tarefa **no seu PC** refaz o
+login e atualiza o secret sozinha — sem Claude e sem gastar tokens. Ela usa um navegador
+dedicado já logado no Google (`.auth/profile`), então não precisa de senha:
+
+1. Crie um token fine-grained do GitHub só para o repositório, com **Secrets: Read and write**, e ponha em `.env.local` como `GITHUB_SECRETS_TOKEN`.
+2. `npm run meupluggy:setup` — uma vez: entre no Google e no Meu Pluggy na janela que abre. Já grava o secret.
+3. `powershell -ExecutionPolicy Bypass -File scripts\install-renew-task.ps1` — agenda a renovação a cada 12 h (e roda ao ligar o PC se perdeu o horário).
+4. Veja `.auth/renew.log`. Se o Google pedir verificação, rode o passo 2 de novo.
+
+O PC precisa estar ligado ao menos uma vez a cada ~12 h.
+
+*Contas com e-mail e senha* (sem Google) podem, em vez disso, cadastrar os secrets `MEUPLUGGY_EMAIL` e
+`MEUPLUGGY_PASSWORD`: aí o próprio workflow entra sozinho quando a sessão expira.
 
 Se o clique falhar, a sincronização segue com os dados que a Pluggy já tem.
 
