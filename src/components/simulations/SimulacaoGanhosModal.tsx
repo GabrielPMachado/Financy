@@ -17,6 +17,7 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react';
+import { getHolidayName, isBrazilHoliday } from '../../lib/holidays';
 
 // Helpers para manipular datas da semana (Segunda a Domingo)
 function formatDateISO(d: Date): string {
@@ -222,7 +223,8 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
         if (fimTotal < inicioTotal) fimTotal += 24;
 
         let ganhoDia = 0;
-        if (diaMatch.id === 'dom') {
+        // Domingo e feriado pagam todas as horas pelo valor noturno (R$ 18/h).
+        if (diaMatch.id === 'dom' || isBrazilHoliday(diaMatch.dateISO)) {
           const horasTrabalhadas = fimTotal - inicioTotal;
           ganhoDia = horasTrabalhadas * valorHoraNoturna;
         } else {
@@ -325,7 +327,9 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
       if (fimTotal < inicioTotal) fimTotal += 24;
 
       let ganhoDia = 0;
-      if (diaId === 'dom') {
+      // Domingo e feriado pagam todas as horas pelo valor noturno (R$ 18/h).
+      const dataDoDia = diasDaSemanaComData.find((d) => d.id === diaId)?.dateISO;
+      if (diaId === 'dom' || isBrazilHoliday(dataDoDia)) {
         const horasTrabalhadas = fimTotal - inicioTotal;
         ganhoDia = horasTrabalhadas * valorHoraNoturna;
       } else {
@@ -633,6 +637,14 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
                           {dia.destaque && (
                             <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                               Dom 100%
+                            </span>
+                          )}
+                          {getHolidayName(dia.dateISO) && (
+                            <span
+                              title={getHolidayName(dia.dateISO) ?? undefined}
+                              className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                            >
+                              Feriado 100%
                             </span>
                           )}
                         </div>
