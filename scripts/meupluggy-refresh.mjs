@@ -8,9 +8,12 @@
  *   node scripts/meupluggy-refresh.mjs refresh "Mercado Pago" "Nubank"
  *                                                            -> atualiza os bancos citados
  *
- * Em produção (GitHub Actions) a sessão vem do secret MEUPLUGGY_STORAGE_STATE
- * (arquivo .auth/meupluggy.json codificado em base64). A senha nunca passa por aqui:
- * o login é feito por você, no navegador, na etapa `login`.
+ * Sessão, em ordem de preferência:
+ *   1. .auth/meupluggy.json  (a mais recente: no Actions vem do cache entre execuções)
+ *   2. secret MEUPLUGGY_STORAGE_STATE (o mesmo arquivo, em base64)
+ *   3. login automático com MEUPLUGGY_EMAIL e MEUPLUGGY_PASSWORD, quando a sessão
+ *      expira (dura ~1 dia e meio) ou não existe. A senha só é digitada no site do
+ *      Meu Pluggy e nunca é impressa. MEUPLUGGY_FORCE_LOGIN=1 força esse caminho (teste).
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -59,25 +62,72 @@ async function login() {
   console.log(`Sessão salva em ${STATE_FILE}. Esse arquivo é um segredo: não commite nem compartilhe.`);
 }
 
-function loadState() {
+class SessionExpiredError extends Error {}
+
+/** Sessão salva (arquivo mais recente > secret), ou undefined se não houver. */
+function loadSavedState() {
+  if (process.env.MEUPLUGGY_FORCE_LOGIN === '1') return undefined;
+  if (existsSync(STATE_FILE)) return JSON.parse(readFileSync(STATE_FILE, 'utf8'));
   if (process.env.MEUPLUGGY_STORAGE_STATE) {
     return JSON.parse(Buffer.from(process.env.MEUPLUGGY_STORAGE_STATE, 'base64').toString('utf8'));
   }
-  if (existsSync(STATE_FILE)) return JSON.parse(readFileSync(STATE_FILE, 'utf8'));
-  throw new Error('Sem sessão do Meu Pluggy. Rode "node scripts/meupluggy-refresh.mjs login" primeiro.');
+  return undefined;
+}
+
+/** Entra no Meu Pluggy com e-mail e senha (login por formulário, sem Google). */
+async function loginWithCredentials(page) {
+  const email = process.env.MEUPLUGGY_EMAIL;
+  const password = process.env.MEUPLUGGY_PASSWORD;
+  if (!email || !password) {
+    throw new Error('Sem sessão válida e sem MEUPLUGGY_EMAIL/MEUPLUGGY_PASSWORD para entrar sozinho.');
+  }
+
+  await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  const enter = page.getByRole('link', { name: /entrar|login|sign in/i }).or(page.getByRole('button', { name: /entrar|login|sign in/i }));
+  if (await enter.first().isVisible({ timeout: 8_000 }).catch(() => false)) await enter.first().click();
+
+  // Botão principal do formulário (ignora "Continuar com Google" e similares).
+  const submit = page
+    .locator('button[type="submit"]')
+    .filter({ hasNotText: /google|apple|microsoft|facebook|github/i })
+    .first();
+
+  const emailField = page.locator('input[name="username"], input[name="email"], input[type="email"]').first();
+  await emailField.waitFor({ timeout: 45_000 });
+  await emailField.fill(email);
+
+  const passwordField = page.locator('input[type="password"]').first();
+  if (!(await passwordField.isVisible().catch(() => false))) {
+    await submit.click(); // formulário em duas etapas (e-mail, depois senha)
+    await passwordField.waitFor({ timeout: 45_000 });
+  }
+  await passwordField.fill(password);
+  await submit.click();
+
+  try {
+    await page.waitForURL(/meu\.pluggy\.ai\/(overview|connections|flow|assets)/, { timeout: 60_000 });
+  } catch {
+    throw new Error('O login automático não chegou ao painel (senha incorreta, verificação extra ou captcha?).');
+  }
+  console.log('Login automático no Meu Pluggy concluído.');
 }
 
 async function refreshBank(page, bank) {
   await page.goto(`${SITE}/connections`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
-  if (/login|signin|sign-in|auth/i.test(new URL(page.url()).pathname)) {
-    throw new Error('Sessão do Meu Pluggy expirada. Rode o login de novo e atualize o secret MEUPLUGGY_STORAGE_STATE.');
+  const here = new URL(page.url());
+  if (/login|signin|sign-in|auth/i.test(here.pathname) || /auth0/i.test(here.hostname)) {
+    throw new SessionExpiredError('Sessão do Meu Pluggy expirada.');
   }
 
   const card = page.getByText(bank, { exact: true }).first();
   try {
     await card.waitFor({ timeout: 30_000 });
   } catch {
+    // Sem o card: ou a sessão caiu (tela de login) ou a conexão realmente não existe.
+    if (await page.locator('input[type="password"], input[type="email"], input[name="username"]').first().isVisible().catch(() => false)) {
+      throw new SessionExpiredError('Sessão do Meu Pluggy expirada.');
+    }
     throw new Error(`Conexão "${bank}" não encontrada na tela de Conexões.`);
   }
   await card.click();
@@ -102,16 +152,43 @@ async function refresh() {
   // channel 'chromium' = Chromium completo no novo modo headless. Evita o
   // "chrome-headless-shell", executável à parte que antivírus costumam bloquear.
   const browser = await chromium.launch({ headless: true, channel: 'chromium' }).catch(() => chromium.launch({ headless: true }));
-  const context = await browser.newContext({ storageState: loadState(), locale: 'pt-BR' });
+  const savedState = loadSavedState();
+  const context = await browser.newContext({ ...(savedState ? { storageState: savedState } : {}), locale: 'pt-BR' });
   const page = await context.newPage();
+
+  let loggedInThisRun = false;
+  const autoLogin = async () => {
+    await loginWithCredentials(page);
+    loggedInThisRun = true;
+  };
+
   const failures = [];
-  for (const bank of banks) {
-    try {
-      await refreshBank(page, bank);
-    } catch (err) {
-      failures.push(err.message);
-      console.error(`${bank}: ${err.message}`);
+  try {
+    if (!savedState) await autoLogin();
+    for (const bank of banks) {
+      try {
+        try {
+          await refreshBank(page, bank);
+        } catch (err) {
+          if (!(err instanceof SessionExpiredError) || loggedInThisRun) throw err;
+          console.log('Sessão expirada: entrando com e-mail e senha…');
+          await autoLogin();
+          await refreshBank(page, bank);
+        }
+      } catch (err) {
+        failures.push(err.message);
+        console.error(`${bank}: ${err.message}`);
+      }
     }
+  } catch (err) {
+    failures.push(err.message);
+    console.error(err.message);
+  }
+
+  // Guarda a sessão (renovada ou não) para as próximas execuções (cache do Actions).
+  if (failures.length === 0) {
+    mkdirSync('.auth', { recursive: true });
+    await context.storageState({ path: STATE_FILE });
   }
   await browser.close();
   if (failures.length > 0) process.exit(1);

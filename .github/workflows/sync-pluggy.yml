@@ -52,12 +52,23 @@ jobs:
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
 
+      # Guarda a sessão do Meu Pluggy entre execuções: o robô só faz login de novo
+      # (com e-mail e senha) quando ela expira, em vez de logar toda hora.
+      - name: Restaurar sessão do Meu Pluggy
+        uses: actions/cache@v4
+        with:
+          path: .auth
+          key: meupluggy-session-${{ github.run_id }}
+          restore-keys: meupluggy-session-
+
       - name: Atualizar no Meu Pluggy
         id: refresh
         continue-on-error: true # se falhar, ainda sincroniza com o que já existe
         run: node scripts/meupluggy-refresh.mjs refresh ${{ steps.banks.outputs.list }}
         env:
           MEUPLUGGY_STORAGE_STATE: ${{ secrets.MEUPLUGGY_STORAGE_STATE }}
+          MEUPLUGGY_EMAIL: ${{ secrets.MEUPLUGGY_EMAIL }}
+          MEUPLUGGY_PASSWORD: ${{ secrets.MEUPLUGGY_PASSWORD }}
 
       - name: Sincronizar
         run: node scripts/sync-pluggy.mjs
@@ -73,5 +84,5 @@ jobs:
       - name: Avisar se a atualização falhou
         if: steps.refresh.outcome == 'failure'
         run: |
-          echo "::error::A atualização no Meu Pluggy falhou (veja a etapa acima). Provável sessão expirada: refaça o login e atualize o secret MEUPLUGGY_STORAGE_STATE."
+          echo "::error::A atualização no Meu Pluggy falhou (veja a etapa acima). Se for login: confira os secrets MEUPLUGGY_EMAIL e MEUPLUGGY_PASSWORD (ou se o site pediu verificação extra)."
           exit 1

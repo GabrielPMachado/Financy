@@ -68,7 +68,8 @@ O workflow `.github/workflows/sync-pluggy.yml` roda de hora em hora (minuto 7) e
 | `PLUGGY_ITEM_IDS` | IDs dos itens separados por vírgula |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON completo da conta de serviço do Firebase |
 | `SYNC_USER_EMAIL` | E-mail da conta do Financy que recebe os dados |
-| `MEUPLUGGY_STORAGE_STATE` | Sessão do Meu Pluggy em base64 (opcional; ver acima) |
+| `MEUPLUGGY_EMAIL` / `MEUPLUGGY_PASSWORD` | Login do Meu Pluggy, para renovar a sessão sozinho |
+| `MEUPLUGGY_STORAGE_STATE` | Sessão inicial em base64 (opcional; ver acima) |
 
 ### Atualização automática no Meu Pluggy
 
@@ -76,9 +77,13 @@ A API da Pluggy não deixa atualizar itens do MeuPluggy, então o workflow abre 
 (Playwright, em nuvem) e clica em **Atualizar** antes de sincronizar: Mercado Pago de
 hora em hora, Nubank às 06:00 e 18:00 (Brasília). Configuração única:
 
-1. `npm run meupluggy:login` — abre o Chrome; entre no Meu Pluggy. A sessão fica em `.auth/meupluggy.json` (ignorado pelo git).
-2. Rode `npm run meupluggy:export` (copia a sessão reduzida para a área de transferência) e cole em um novo secret **`MEUPLUGGY_STORAGE_STATE`**.
-3. Quando a sessão expirar, a execução fica **vermelha** (o GitHub avisa por e-mail): repita os passos 1 e 2.
+A sessão do Meu Pluggy dura cerca de um dia e meio. Para não precisar renová-la à mão,
+o robô entra **sozinho com e-mail e senha** quando ela expira e guarda a sessão nova
+no cache do Actions (assim ele só faz login uma vez a cada expiração). Configuração:
+
+1. Cadastre os secrets **`MEUPLUGGY_EMAIL`** e **`MEUPLUGGY_PASSWORD`** (a senha fica só nos Secrets do GitHub).
+2. Opcional, para a primeira execução já começar logada: `npm run meupluggy:login` e `npm run meupluggy:export`, colando o resultado em **`MEUPLUGGY_STORAGE_STATE`**.
+3. Se o login automático falhar (senha trocada, verificação extra, captcha), a execução fica **vermelha** e o GitHub avisa por e-mail.
 
 Se o clique falhar, a sincronização segue com os dados que a Pluggy já tem.
 
