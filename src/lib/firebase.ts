@@ -16,13 +16,20 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   signOut,
   type User,
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Hospedado no Firebase Hosting (financy-2d.web.app), o login do Google usa o
+// próprio domínio do site: no iPhone o Safari bloqueia o cookie de outro domínio
+// (firebaseapp.com) e o login por redirecionamento não voltaria logado.
+const onFirebaseHosting = typeof location !== 'undefined' && /\.(web\.app|firebaseapp\.com)$/.test(location.hostname);
+const app = getApps().length === 0
+  ? initializeApp(onFirebaseHosting ? { ...firebaseConfig, authDomain: location.hostname } : firebaseConfig)
+  : getApps()[0];
 
 // firestoreDatabaseId vazio ou "(default)" usa o banco padrão do projeto;
 // só passa o segundo argumento quando é um banco nomeado de verdade.
@@ -60,7 +67,11 @@ export async function registerWithEmail(email: string, password: string): Promis
 
 export async function loginWithGoogle(): Promise<void> {
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
+  // App instalado na Tela de Início do iPhone: pop-up não volta para o app,
+  // então troca a página pelo login e o onAuthStateChanged pega a volta.
+  const standaloneIos = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  if (standaloneIos) await signInWithRedirect(auth, provider);
+  else await signInWithPopup(auth, provider);
 }
 
 export async function logout(): Promise<void> {
