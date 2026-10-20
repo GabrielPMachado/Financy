@@ -52,7 +52,14 @@ async function exportState(context) {
   return encoded;
 }
 
-async function updateGithubSecret(value) {
+const GITHUB_ERRORS = {
+  401: 'O GITHUB_SECRETS_TOKEN é inválido ou expirou (tokens fine-grained têm prazo de validade). Gere outro token e atualize o .env.local.',
+  403: 'O GITHUB_SECRETS_TOKEN não tem a permissão "Secrets: Read and write" (ou o limite de requisições do GitHub foi atingido).',
+  404: `O GitHub não achou o repositório ${REPO}: o token é desse repositório? (confira também GITHUB_REPO).`,
+};
+
+/** Chama a API de secrets do repositório; devolve o cabeçalho e a chave pública. Mensagem própria para cada falha. */
+async function fetchSecretsKey() {
   const token = process.env.GITHUB_SECRETS_TOKEN;
   if (!token) throw new Error('Defina GITHUB_SECRETS_TOKEN no .env.local (token com permissão Secrets: leitura e escrita).');
   const api = `https://api.github.com/repos/${REPO}/actions/secrets`;
@@ -61,10 +68,19 @@ async function updateGithubSecret(value) {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
   };
+  let res;
+  try {
+    res = await fetch(`${api}/public-key`, { headers });
+  } catch {
+    throw new Error('Sem conexão com o GitHub (PC sem internet?).');
+  }
+  if (!res.ok) throw new Error(GITHUB_ERRORS[res.status] ?? `O GitHub respondeu com erro ${res.status} ao ler a chave pública.`);
+  const { key, key_id: keyId } = await res.json();
+  return { api, headers, key, keyId };
+}
 
-  const keyRes = await fetch(`${api}/public-key`, { headers });
-  if (!keyRes.ok) throw new Error(`GitHub recusou a leitura da chave pública (HTTP ${keyRes.status}). Confira a permissão do token.`);
-  const { key, key_id: keyId } = await keyRes.json();
+async function updateGithubSecret(value) {
+  const { api, headers, key, keyId } = await fetchSecretsKey();
 
   await sodium.ready;
   const sealed = sodium.crypto_box_seal(sodium.from_string(value), sodium.from_base64(key, sodium.base64_variants.ORIGINAL));
@@ -75,16 +91,24 @@ async function updateGithubSecret(value) {
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({ encrypted_value: encrypted, key_id: keyId }),
   });
-  if (!putRes.ok) throw new Error(`GitHub recusou a gravação do secret (HTTP ${putRes.status}).`);
+  if (!putRes.ok) throw new Error(`O GitHub recusou a gravação do secret (HTTP ${putRes.status}).`);
 }
 
 async function setup() {
+  await fetchSecretsKey(); // falha logo se o token estiver ruim, antes de pedir o login
   mkdirSync('.auth', { recursive: true });
   const context = await launchProfile(false);
   const page = context.pages()[0] ?? (await context.newPage());
   await page.goto(SITE, { waitUntil: 'commit', timeout: 120_000 });
-  console.log('Entre com o Google e no Meu Pluggy na janela que abriu (até 5 min)…');
-  await page.waitForURL(LOGGED_IN_URL, { timeout: 300_000 });
+  console.log('Entre com o Google e no Meu Pluggy na janela que abriu (até 5 min). Não feche a janela: ela fecha sozinha.');
+  try {
+    await page.waitForURL(LOGGED_IN_URL, { timeout: 300_000 });
+  } catch (err) {
+    if (/closed/i.test(err.message)) {
+      throw new Error('A janela foi fechada antes de chegar ao painel do Meu Pluggy. Rode de novo e só feche depois que ela fechar sozinha.');
+    }
+    throw new Error('Passaram 5 minutos sem chegar ao painel do Meu Pluggy. Rode de novo e conclua o login.');
+  }
   await page.waitForTimeout(3000);
   const encoded = await exportState(context);
   await context.close();
@@ -108,6 +132,7 @@ async function signInWithGoogleSession(page) {
 }
 
 async function renew() {
+  await fetchSecretsKey(); // não abre o navegador à toa se o token do GitHub estiver ruim
   const context = await launchProfile(true);
   const page = context.pages()[0] ?? (await context.newPage());
   try {
