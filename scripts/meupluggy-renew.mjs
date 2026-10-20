@@ -164,5 +164,5 @@ async function renew() {
 (mode === 'setup' ? setup() : mode === 'renew' ? renew() : Promise.reject(new Error('Use: setup | renew')))
   .catch((err) => {
     console.error(`${new Date().toISOString()} ${err.message}`);
-    process.exit(1);
+    process.exitCode = 1; // sem process.exit(): evita o "Assertion failed ... async.c" do Node no Windows
   });
