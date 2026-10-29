@@ -41,7 +41,9 @@ Dados usados nas ações (não são segredos):
    - Método: **GET**
    - Cabeçalho: `Authorization` = `Bearer ` + variável `idt` (com um espaço depois de Bearer)
 6. **Obter valor do dicionário**: chave `fields.texto.stringValue`.
-7. **Mostrar resultado**.
+7. **Mostrar alerta**, com o título `Financy` e a mensagem sendo o *Valor do dicionário* (só um botão OK, mais limpo que o *Mostrar resultado*).
+
+**Versão em cartão (opcional):** no lugar das ações 6 e 7, use **Obter valor do dicionário** com a chave `fields.html.stringValue`, depois **Definir nome** (do item) para `resumo.html` e **Visualização rápida**. O iOS abre o resumo como um cartão escuro, igual ao saldo do app. Se a Visualização rápida mostrar o código em vez do cartão, volte para o alerta.
 
 ## Atalho "Novo trabalho" (2 toques)
 
