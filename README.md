@@ -121,10 +121,10 @@ estilo da Dynamic Island que abre com o gesto de tocar nas costas do aparelho.
 
 1. **Publicar** (uma vez, e de novo a cada mudança no app): `npx -y firebase-tools@14 login` e depois `npm run deploy:web`. Fica em `https://financy-2d.web.app` (Firebase Hosting, plano gratuito).
 2. **Instalar**: no Safari do iPhone, abra o endereço, entre na conta e use Compartilhar › *Adicionar à Tela de Início*.
-3. **Atalho**: no app Atalhos, crie um atalho *Resumo Financy* com a ação **Abrir URLs** e o endereço `https://financy-2d.web.app/?action=resumo`. (`?action=quick-add` abre direto o lançamento rápido.)
-4. **Gesto**: Ajustes › Acessibilidade › Toque › Tocar nas costas › Toque duplo › escolha o atalho.
+3. **Atalhos com o gesto de tocar nas costas** (sem abrir o Safari): 2 toques registram um trabalho freelancer e 3 toques mostram o resumo, ambos em caixas nativas do iOS. Passo a passo em [docs/ATALHOS-IPHONE.md](docs/ATALHOS-IPHONE.md).
+   - *Alternativa que abre o app:* um Atalho com **Abrir URLs** em `https://financy-2d.web.app/?action=resumo` (ilha de resumo) ou `?action=quick-add` (lançamento rápido).
 
-Limites do iOS: a ação **Abrir URLs** abre no Safari, não no app da Tela de Início, e os dois guardam o login separadamente (entre uma vez nos dois). O Safari também apaga dados de sites que ficam 7 dias sem toque seu: se for deslogado, é só entrar de novo. A Dynamic Island de verdade (Live Activity) exige app nativo, Mac e Xcode.
+Limites do iOS: a ação **Abrir URLs** abre no Safari, não no app da Tela de Início, e os dois guardam o login separadamente (entre uma vez nos dois). Os Atalhos da pasta `docs` não dependem desse login: usam a chave de *Ajustes › Atalho do iPhone*. A Dynamic Island de verdade (Live Activity) exige app nativo, Mac e Xcode.
 
 ## Licença
 

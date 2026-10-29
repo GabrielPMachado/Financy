@@ -25,6 +25,8 @@ import ManageCategoriesModal from './components/categories/ManageCategoriesModal
 import SummaryCards from './components/dashboard/SummaryCards';
 import TransactionModal, { TransactionFormData } from './components/transactions/TransactionModal';
 import QuickGlance from './components/dashboard/QuickGlance';
+import { buildQuickSummary } from './lib/quickSummary';
+import { processQuickJobs, saveQuickSummary, subscribeQuickJobs } from './lib/quickShortcuts';
 import TransactionHistory from './components/transactions/TransactionHistory';
 import Header from './components/layout/Header';
 import Charts from './components/dashboard/Charts';
@@ -441,6 +443,33 @@ export default function App() {
 
     return () => unsubscribe();
   }, [authUser]);
+
+  // Atalho do iPhone: mantém o resumo (users/{uid}/resumo/atual) em dia para o
+  // Atalho ler sem abrir o app, e passa os trabalhos freelancer que ele enviou
+  // (fila trabalhosRapidos) para as semanas pendentes. Ver src/lib/quickShortcuts.ts.
+  const isProcessingQuickJobs = useRef(false);
+  useEffect(() => {
+    if (!authUser) return;
+    const uid = authUser.uid;
+    return subscribeQuickJobs(uid, (jobs) => {
+      if (jobs.length === 0 || isProcessingQuickJobs.current) return;
+      isProcessingQuickJobs.current = true;
+      processQuickJobs(uid, jobs)
+        .catch((err) => console.error('Erro ao processar trabalhos rápidos:', err))
+        .finally(() => {
+          isProcessingQuickJobs.current = false;
+        });
+    });
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser || !hasSyncedFromCloud.current) return;
+    const timer = setTimeout(() => {
+      const summary = buildQuickSummary(transactions, categories, pendingSimulations.map((sim) => sim.amount));
+      saveQuickSummary(authUser.uid, summary).catch((err) => console.error('Erro ao salvar o resumo rápido:', err));
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [authUser, transactions, categories, pendingSimulations]);
 
   // Sincronização síncrona imediata com LocalStorage
   useEffect(() => {
@@ -1373,6 +1402,7 @@ export default function App() {
               setGithubToken('');
               bankSync.refreshTokenFlag();
             }}
+            getShortcutKey={() => authUser.refreshToken}
           />
         )}
 

@@ -380,6 +380,31 @@ async function writeToFirestore(openings, outsideWindowIds, cards, transactions)
     db, userRef.collection('receitas'), transactions.filter((t) => t.collection === 'receitas'));
   if (backfilled > 0) console.log(`Horário completado em ${backfilled} lançamento(s) antigo(s).`);
   console.log(`Gravado: ${createdExpenses} despesa(s), ${createdIncome} receita(s), ${createdCards} cartão(ões) novos.`);
+  await writeQuickSummary(userRef);
+}
+
+/**
+ * Atualiza users/{uid}/resumo/atual, que o Atalho do iPhone lê. Mesma regra do app
+ * (src/lib/quickSummary.ts, importado direto: precisa de Node 22.18+ ou 24).
+ * Falha aqui não derruba a sincronização: o app também mantém esse resumo.
+ */
+async function writeQuickSummary(userRef) {
+  try {
+    const { buildQuickSummary } = await import('../src/lib/quickSummary.ts');
+    const read = async (name) => (await userRef.collection(name).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
+    const [expenses, income, categories, pending] = await Promise.all([
+      read('despesas'), read('receitas'), read('categorias'), read('simulacoesPendentes'),
+    ]);
+    const transactions = [
+      ...expenses.map((t) => ({ ...t, type: 'expense' })),
+      ...income.map((t) => ({ ...t, type: 'income' })),
+    ];
+    const summary = buildQuickSummary(transactions, categories, pending.map((p) => Number(p.amount) || 0));
+    await userRef.collection('resumo').doc('atual').set(summary);
+    console.log('Resumo rápido atualizado.');
+  } catch (err) {
+    console.warn('Não foi possível atualizar o resumo rápido:', err.message);
+  }
 }
 
 main().catch((err) => {

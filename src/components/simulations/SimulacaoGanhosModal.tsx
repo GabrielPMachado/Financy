@@ -17,7 +17,8 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react';
-import { getHolidayName, isBrazilHoliday } from '../../lib/holidays';
+import { getHolidayName } from '../../lib/holidays';
+import { calcularGanhoDia } from '../../lib/freelance';
 
 // Helpers para manipular datas da semana (Segunda a Domingo)
 function formatDateISO(d: Date): string {
@@ -202,56 +203,28 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
 
   const handleSalvarPendencia = () => {
     if (resultado && resultado > 0) {
-      const valorHoraDiurna = 15;
-      const valorHoraNoturna = 18;
-      const alimentacaoPorDia = 20;
-
       const breakdown: DailyBreakdownItem[] = [];
 
       diasDaSemanaComData.forEach(diaMatch => {
         const info = diasTrabalhados[diaMatch.id];
         if (!info || !info.inicio || !info.fim) return;
 
-        const { inicio, fim, comeuPizza } = info;
-
-        const [inicioH, inicioM] = inicio.split(':').map(Number);
-        const [fimH, fimM] = fim.split(':').map(Number);
-
-        const inicioTotal = inicioH + (inicioM / 60);
-        let fimTotal = fimH + (fimM / 60);
-
-        if (fimTotal < inicioTotal) fimTotal += 24;
-
-        let ganhoDia = 0;
-        // Domingo e feriado pagam todas as horas pelo valor noturno (R$ 18/h).
-        if (diaMatch.id === 'dom' || isBrazilHoliday(diaMatch.dateISO)) {
-          const horasTrabalhadas = fimTotal - inicioTotal;
-          ganhoDia = horasTrabalhadas * valorHoraNoturna;
-        } else {
-          const periodoDiurnoInicio = 11;
-          const periodoDiurnoFim = 22;
-          let horasDiurnas = 0;
-
-          const diurnoInicio = Math.max(inicioTotal, periodoDiurnoInicio);
-          const diurnoFim = Math.min(fimTotal, periodoDiurnoFim);
-
-          if (diurnoFim > diurnoInicio) horasDiurnas = diurnoFim - diurnoInicio;
-
-          const horasNoturnas = (fimTotal - inicioTotal) - horasDiurnas;
-          ganhoDia = (horasDiurnas * valorHoraDiurna) + (horasNoturnas * valorHoraNoturna);
-        }
-
-        let ganhoDoDiaComAlimentacao = ganhoDia + alimentacaoPorDia;
-        if (comeuPizza) ganhoDoDiaComAlimentacao -= 10;
+        const { amount, adicional } = calcularGanhoDia({
+          dateISO: diaMatch.dateISO,
+          isSunday: diaMatch.id === 'dom',
+          inicio: info.inicio,
+          fim: info.fim,
+          comeuPizza: info.comeuPizza,
+        });
 
         breakdown.push({
           id: diaMatch.id,
           dayName: `${diaMatch.nome} (${diaMatch.dateFormatted})`,
           date: diaMatch.dateISO,
-          amount: ganhoDoDiaComAlimentacao,
-          horaInicio: inicio,
-          horaFim: fim,
-          adicional: comeuPizza ? alimentacaoPorDia - 10 : alimentacaoPorDia,
+          amount,
+          horaInicio: info.inicio,
+          horaFim: info.fim,
+          adicional,
         });
       });
 
@@ -310,46 +283,18 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
 
   const calcularGanhos = () => {
     let ganhoTotal = 0;
-    const valorHoraDiurna = 15;
-    const valorHoraNoturna = 18;
-    const alimentacaoPorDia = 20;
 
     for (const diaId in diasTrabalhados) {
       const { inicio, fim, comeuPizza } = diasTrabalhados[diaId];
       if (!inicio || !fim) continue;
 
-      const [inicioH, inicioM] = inicio.split(':').map(Number);
-      const [fimH, fimM] = fim.split(':').map(Number);
-
-      const inicioTotal = inicioH + (inicioM / 60);
-      let fimTotal = fimH + (fimM / 60);
-
-      if (fimTotal < inicioTotal) fimTotal += 24;
-
-      let ganhoDia = 0;
-      // Domingo e feriado pagam todas as horas pelo valor noturno (R$ 18/h).
-      const dataDoDia = diasDaSemanaComData.find((d) => d.id === diaId)?.dateISO;
-      if (diaId === 'dom' || isBrazilHoliday(dataDoDia)) {
-        const horasTrabalhadas = fimTotal - inicioTotal;
-        ganhoDia = horasTrabalhadas * valorHoraNoturna;
-      } else {
-        const periodoDiurnoInicio = 11;
-        const periodoDiurnoFim = 22;
-        let horasDiurnas = 0;
-
-        const diurnoInicio = Math.max(inicioTotal, periodoDiurnoInicio);
-        const diurnoFim = Math.min(fimTotal, periodoDiurnoFim);
-
-        if (diurnoFim > diurnoInicio) horasDiurnas = diurnoFim - diurnoInicio;
-
-        const horasNoturnas = (fimTotal - inicioTotal) - horasDiurnas;
-        ganhoDia = (horasDiurnas * valorHoraDiurna) + (horasNoturnas * valorHoraNoturna);
-      }
-
-      let ganhoDoDiaComAlimentacao = ganhoDia + alimentacaoPorDia;
-      if (comeuPizza) ganhoDoDiaComAlimentacao -= 10;
-
-      ganhoTotal += ganhoDoDiaComAlimentacao;
+      ganhoTotal += calcularGanhoDia({
+        dateISO: diasDaSemanaComData.find((d) => d.id === diaId)?.dateISO,
+        isSunday: diaId === 'dom',
+        inicio,
+        fim,
+        comeuPizza,
+      }).amount;
     }
     setResultado(ganhoTotal);
   };

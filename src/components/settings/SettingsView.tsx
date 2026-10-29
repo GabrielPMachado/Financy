@@ -23,6 +23,8 @@ interface SettingsViewProps {
   onSyncNow: (options: SyncOptions) => void;
   onSaveGithubToken: (token: string) => void;
   onClearGithubToken: () => void;
+  /** Chave de acesso do Atalho do iPhone (token de atualização da sessão atual). */
+  getShortcutKey: () => string;
 }
 
 const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
@@ -63,6 +65,54 @@ const SYNC_ACTIONS: { label: string; hint: string; options: SyncOptions }[] = [
   { label: 'Atualizar Nubank', hint: '1–3 min', options: { refresh: true, bank: 'Nubank' } },
   { label: 'Atualizar os dois bancos', hint: '2–4 min', options: { refresh: true, bank: 'todos' } },
 ];
+
+function ShortcutKeyGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey'>) {
+  const [status, setStatus] = useState<'idle' | 'copied' | 'manual'>('idle');
+  const [manualKey, setManualKey] = useState('');
+
+  const handleCopy = async () => {
+    const key = getShortcutKey();
+    if (!key) return;
+    try {
+      await navigator.clipboard.writeText(key);
+      setStatus('copied');
+    } catch {
+      setManualKey(key); // sem permissão da área de transferência: mostra para copiar à mão
+      setStatus('manual');
+    }
+  };
+
+  return (
+    <Group label="Atalho do iPhone">
+      <button type="button" onClick={handleCopy} className={rowClass}>
+        <span>Copiar chave do Atalho</span>
+        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+      </button>
+      {status === 'copied' && (
+        <p role="status" className="px-4 py-2.5 text-xs text-emerald-600 dark:text-emerald-400">
+          Chave copiada. Cole no começo do Atalho (veja docs/ATALHOS-IPHONE.md).
+        </p>
+      )}
+      {status === 'manual' && (
+        <div className="px-4 py-3">
+          <label htmlFor="shortcut-key" className="block text-xs text-slate-400 dark:text-slate-500 mb-1">
+            Toque e segure para copiar:
+          </label>
+          <input
+            id="shortcut-key"
+            readOnly
+            value={manualKey}
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+          />
+        </div>
+      )}
+      <p className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">
+        Quem tiver essa chave acessa os seus dados financeiros. Cole só no seu Atalho e não compartilhe o Atalho com ninguém.
+      </p>
+    </Group>
+  );
+}
 
 function BankSyncGroup(props: Pick<SettingsViewProps, 'bankSync' | 'hasGithubToken' | 'onSyncNow' | 'onSaveGithubToken' | 'onClearGithubToken'>) {
   const [tokenDraft, setTokenDraft] = useState('');
@@ -194,6 +244,8 @@ export default function SettingsView(props: SettingsViewProps) {
         onSaveGithubToken={props.onSaveGithubToken}
         onClearGithubToken={props.onClearGithubToken}
       />
+
+      <ShortcutKeyGroup getShortcutKey={props.getShortcutKey} />
 
       <Group label="Seus dados">
         <Row label="Exportar JSON" onClick={props.onExportJSON} />
