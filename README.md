@@ -114,6 +114,18 @@ O app mostra uma mensagem diferente para cada causa (token inválido, sem permis
 
 **Mantenha este repositório privado.** Os segredos ficam só nos Secrets do GitHub e o script nunca imprime valores nem descrições de transações no log, apenas contagens.
 
+## iPhone (PWA + "Tocar nas costas")
+
+O Financy funciona no iPhone como PWA (sem Mac e sem App Store), com uma "ilha" de resumo no
+estilo da Dynamic Island que abre com o gesto de tocar nas costas do aparelho.
+
+1. **Publicar** (uma vez, e de novo a cada mudança no app): `npx -y firebase-tools@14 login` e depois `npm run deploy:web`. Fica em `https://financy-2d.web.app` (Firebase Hosting, plano gratuito).
+2. **Instalar**: no Safari do iPhone, abra o endereço, entre na conta e use Compartilhar › *Adicionar à Tela de Início*.
+3. **Atalho**: no app Atalhos, crie um atalho *Resumo Financy* com a ação **Abrir URLs** e o endereço `https://financy-2d.web.app/?action=resumo`. (`?action=quick-add` abre direto o lançamento rápido.)
+4. **Gesto**: Ajustes › Acessibilidade › Toque › Tocar nas costas › Toque duplo › escolha o atalho.
+
+Limites do iOS: a ação **Abrir URLs** abre no Safari, não no app da Tela de Início, e os dois guardam o login separadamente (entre uma vez nos dois). O Safari também apaga dados de sites que ficam 7 dias sem toque seu: se for deslogado, é só entrar de novo. A Dynamic Island de verdade (Live Activity) exige app nativo, Mac e Xcode.
+
 ## Licença
 
 Uso pessoal.

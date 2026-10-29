@@ -16,7 +16,8 @@
     "meupluggy:refresh": "node scripts/meupluggy-refresh.mjs refresh",
     "meupluggy:export": "node scripts/meupluggy-export-state.mjs",
     "meupluggy:setup": "node scripts/meupluggy-renew.mjs setup",
-    "meupluggy:renew": "node scripts/meupluggy-renew.mjs renew"
+    "meupluggy:renew": "node scripts/meupluggy-renew.mjs renew",
+    "deploy:web": "vite build && npx -y firebase-tools@14 deploy --only hosting"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

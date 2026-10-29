@@ -24,6 +24,7 @@ import PendingSimulationsSidebar, { PendingSimulation, DailyBreakdownItem } from
 import ManageCategoriesModal from './components/categories/ManageCategoriesModal';
 import SummaryCards from './components/dashboard/SummaryCards';
 import TransactionModal, { TransactionFormData } from './components/transactions/TransactionModal';
+import QuickGlance from './components/dashboard/QuickGlance';
 import TransactionHistory from './components/transactions/TransactionHistory';
 import Header from './components/layout/Header';
 import Charts from './components/dashboard/Charts';
@@ -1099,6 +1100,23 @@ export default function App() {
   // Pendência freelance para a qual o usuário está escolhendo o Pix recebido.
   const [linkingPending, setLinkingPending] = useState<PendingSimulation | null>(null);
 
+  // Atalhos por endereço (usados pelo Atalho do iPhone no "Tocar nas costas"):
+  // ?action=resumo abre a ilha de resumo; ?action=quick-add abre o lançamento rápido.
+  const [glanceOpen, setGlanceOpen] = useState<boolean>(
+    () => new URLSearchParams(window.location.search).get('action') === 'resumo'
+  );
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    if (!action) return;
+    if (action === 'quick-add') handleOpenNewTransaction('expense');
+    params.delete('action');
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    // roda só na abertura: a ação vem do endereço e é removida dele
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Sem token configurado, leva direto aos Ajustes (onde ele é colado).
   const handleSyncNow = (options?: SyncOptions) => {
     if (!bankSync.hasToken) setActiveView('config');
@@ -1486,6 +1504,22 @@ export default function App() {
       />
 
       {/* Modal de Transação (Nova / Editar) */}
+      <QuickGlance
+        open={glanceOpen}
+        onClose={() => setGlanceOpen(false)}
+        onQuickAdd={() => {
+          setGlanceOpen(false);
+          handleOpenNewTransaction('expense');
+        }}
+        balance={totalBalance}
+        income={totalIncome}
+        expense={totalExpense}
+        pendingTotal={totalPendingAmount}
+        pendingCount={pendingSimulations.length}
+        transactions={transactions}
+        formatCurrency={formatCurrency}
+      />
+
       <TransactionModal
         isOpen={isTransactionModalOpen}
         onClose={() => {
