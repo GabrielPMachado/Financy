@@ -20,6 +20,8 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Páginas de login do Firebase (/__/auth/...) nunca podem vir do cache.
+  if (new URL(event.request.url).pathname.startsWith('/__/')) return;
   event.respondWith(
     fetch(event.request)
       .then((res) => {

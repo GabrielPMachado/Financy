@@ -1,6 +1,6 @@
 # Financy
 
-Controle financeiro pessoal para web e Android (Capacitor), com login, sincronização em nuvem e importação automática das transações do **Nubank** e do **Mercado Pago** via Open Finance.
+Controle financeiro pessoal para web, iPhone (PWA) e Android (Capacitor), com login, sincronização em nuvem e importação automática das transações do **Nubank** e do **Mercado Pago** via Open Finance.
 
 ## Recursos
 
@@ -34,6 +34,16 @@ npm run build
 npx cap sync android
 cd android && ./gradlew assembleDebug   # APK em android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+### iPhone (PWA, sem App Store)
+
+O workflow `.github/workflows/deploy-web.yml` publica o app em **https://financy-2d.web.app** (Firebase Hosting) a cada push na `main` que muda o app, ou manualmente em **Actions → Publicar site → Run workflow**. Usa o mesmo secret `FIREBASE_SERVICE_ACCOUNT`; se der erro de permissão, dê à conta de serviço o papel **Administrador do Firebase Hosting** (Google Cloud → IAM).
+
+No iPhone: abra o endereço no **Safari** → Compartilhar → **Adicionar à Tela de Início**. Abre em tela cheia, com ícone, e se atualiza sozinho a cada publicação.
+
+- Login com Google no app instalado: adicione `https://financy-2d.web.app/__/auth/handler` em *URIs de redirecionamento autorizados* do cliente OAuth "Web client (auto created by Google Service)" (Google Cloud → APIs e serviços → Credenciais). E-mail e senha funcionam sem isso.
+- O site é público, então o build não embute o token do GitHub: cole-o em Ajustes > Bancos para usar *Sincronizar agora*.
+- O atalho de lançamento rápido (sobreposição) é só do Android.
 
 ## Segurança dos dados
 
@@ -119,7 +129,7 @@ O app mostra uma mensagem diferente para cada causa (token inválido, sem permis
 O Financy funciona no iPhone como PWA (sem Mac e sem App Store), com uma "ilha" de resumo no
 estilo da Dynamic Island que abre com o gesto de tocar nas costas do aparelho.
 
-1. **Publicar** (uma vez, e de novo a cada mudança no app): `npx -y firebase-tools@14 login` e depois `npm run deploy:web`. Fica em `https://financy-2d.web.app` (Firebase Hosting, plano gratuito).
+1. **Publicar:** é automático. O workflow `deploy-web.yml` (veja *iPhone (PWA, sem App Store)* acima) publica em `https://financy-2d.web.app` a cada push na `main` que muda o app.
 2. **Instalar**: no Safari do iPhone, abra o endereço, entre na conta e use Compartilhar › *Adicionar à Tela de Início*.
 3. **Atalhos com o gesto de tocar nas costas** (sem abrir o Safari): 2 toques registram um trabalho freelancer e 3 toques mostram o resumo, ambos em caixas nativas do iOS. Passo a passo em [docs/ATALHOS-IPHONE.md](docs/ATALHOS-IPHONE.md).
    - *Alternativa que abre o app:* um Atalho com **Abrir URLs** em `https://financy-2d.web.app/?action=resumo` (ilha de resumo) ou `?action=quick-add` (lançamento rápido).

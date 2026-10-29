@@ -1,5 +1,3 @@
 {
-  "projects": {
-    "default": "financy-2d"
-  }
+  "projects": { "default": "financy-2d" }
 }

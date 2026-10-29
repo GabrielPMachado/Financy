@@ -1,0 +1,44 @@
+name: Publicar site (PWA para iPhone)
+
+# Publica o app em https://financy-2d.web.app (Firebase Hosting). No iPhone, abra
+# o endereço no Safari > Compartilhar > Adicionar à Tela de Início.
+# O site é público: não embute VITE_GITHUB_SYNC_TOKEN nem GEMINI_API_KEY no
+# build (cole o token nos Ajustes do app).
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'public/**', 'index.html', 'package-lock.json', 'vite.config.ts', 'firebase.json', 'firebase-applet-config.json']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Build
+        run: npm run build
+
+      - name: Publicar no Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: financy-2d
+          channelId: live

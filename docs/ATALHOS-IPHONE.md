@@ -16,7 +16,7 @@ Dois Atalhos do app **Atalhos**, ligados ao gesto de tocar nas costas do iPhone.
 
 ## Antes de começar
 
-1. Publique o app com `npm run deploy:web` (veja o README) e abra uma vez o `https://financy-2d.web.app` no iPhone, já logado, para o resumo ser criado.
+1. Com o app publicado (o push na `main` publica sozinho, veja o README), abra uma vez o `https://financy-2d.web.app` no iPhone, já logado, para o resumo ser criado.
 2. No iPhone, em *Ajustes* do app, toque em **Copiar chave do Atalho**. A chave fica na área de transferência.
 
 Dados usados nas ações (não são segredos):
