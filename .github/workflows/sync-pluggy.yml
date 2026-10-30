@@ -99,7 +99,6 @@ jobs:
         continue-on-error: true # se falhar, ainda sincroniza com o que já existe
         run: node scripts/meupluggy-refresh.mjs refresh ${{ steps.plan.outputs.list }}
         env:
-          MEUPLUGGY_STORAGE_STATE: ${{ secrets.MEUPLUGGY_STORAGE_STATE }}
           MEUPLUGGY_EMAIL: ${{ secrets.MEUPLUGGY_EMAIL }}
           MEUPLUGGY_PASSWORD: ${{ secrets.MEUPLUGGY_PASSWORD }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
@@ -119,10 +118,10 @@ jobs:
       # Atualização no Meu Pluggy (não impede o sync, mas deixa a execução vermelha).
       - name: Falha [sem-sessao]
         if: steps.refresh.outputs.reason == 'sem-sessao'
-        run: echo "::error::Sem sessão do Meu Pluggy. Rode npm run meupluggy:setup." && exit 1
+        run: echo "::error::Sem sessão do Meu Pluggy e sem os secrets MEUPLUGGY_EMAIL e GMAIL_APP_PASSWORD." && exit 1
       - name: Falha [sessao-expirada]
         if: steps.refresh.outputs.reason == 'sessao-expirada'
-        run: echo "::error::Sessão do Meu Pluggy expirada. Rode npm run meupluggy:setup ou npm run meupluggy:renew." && exit 1
+        run: echo "::error::Sessão do Meu Pluggy expirada e sem os secrets MEUPLUGGY_EMAIL e GMAIL_APP_PASSWORD." && exit 1
       - name: Falha [login-falhou]
         if: steps.refresh.outputs.reason == 'login-falhou'
         run: echo "::error::O login automático no Meu Pluggy não funcionou." && exit 1
