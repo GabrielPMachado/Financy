@@ -60,7 +60,6 @@ O script `scripts/sync-pluggy.mjs` busca as transações a partir de 01/10/2026 
 
 > Transferências entre as suas próprias contas aparecem como saída em uma e entrada na outra.
 
-
 ### Configuração única
 
 1. Crie contas em [meu.pluggy.ai](https://meu.pluggy.ai) (conectar os bancos) e em [dashboard.pluggy.ai](https://dashboard.pluggy.ai) (credenciais da aplicação), e vincule o conector **MeuPluggy** à aplicação.
