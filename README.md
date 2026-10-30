@@ -81,7 +81,7 @@ O workflow `.github/workflows/sync-pluggy.yml` roda de hora em hora (minuto 7) e
 | `MEUPLUGGY_EMAIL` | E-mail da conta do Meu Pluggy (um Gmail), para o robô entrar sozinho |
 | `GMAIL_APP_PASSWORD` | [Senha de app](https://myaccount.google.com/apppasswords) desse Gmail: o robô pede o e-mail de acesso do Meu Pluggy e lê o código/link |
 | `MEUPLUGGY_PASSWORD` | Opcional: em vez da senha de app, para contas com senha |
-| `NTFY_TOPIC` | Opcional: tópico do app [ntfy](https://ntfy.sh) que recebe um push ao fim de cada sync manual (use um nome difícil de adivinhar) |
+| `NTFY_TOPIC` | Opcional: tópico do app [ntfy](https://ntfy.sh) que recebe um push ao fim de cada sync manual (banco atualizado e quantos lançamentos entraram, ou o motivo da falha; nunca valores). Use um nome difícil de adivinhar |
 
 ### Atualização automática no Meu Pluggy
 

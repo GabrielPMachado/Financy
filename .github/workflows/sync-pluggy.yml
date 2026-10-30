@@ -156,30 +156,15 @@ jobs:
         run: echo "::error::Uma etapa falhou sem informar o motivo (veja o log)." && exit 1
 
       # Push no celular (app ntfy, tópico no secret NTFY_TOPIC) ao fim das execuções
-      # manuais (Atalho, app, Actions). As agendadas não avisam, para não virar spam.
+      # manuais (Atalho, app, Actions): saldo, gastos do mês e lançamentos novos, ou o
+      # motivo da falha. As agendadas não avisam, para não virar spam.
       - name: Avisar no celular
         if: always() && github.event_name == 'workflow_dispatch'
+        run: node scripts/notify-ntfy.mjs
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           STATUS: ${{ job.status }}
           REASON: ${{ steps.refresh.outputs.reason || steps.sync.outputs.reason }}
-          CREATED: ${{ steps.sync.outputs.created }}
+          BANKS: ${{ steps.plan.outputs.list }}
+          REFRESH: ${{ steps.plan.outputs.refresh }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          # Tira espaços, quebras de linha e crases que vêm junto ao colar o secret.
-          TOPIC=$(printf '%s' "$NTFY_TOPIC" | tr -d '[:space:]`')
-          [ -z "$TOPIC" ] && exit 0
-          if [ "$STATUS" = "success" ]; then
-            TITLE="Bancos sincronizados"; TAGS="white_check_mark"
-            MSG="${CREATED:-0} lançamento(s) novo(s)."
-          else
-            TITLE="Sync com problema"; TAGS="warning"
-            MSG="Motivo: ${REASON:-desconhecido}."
-            [ -n "$CREATED" ] && MSG="$MSG Mesmo assim, ${CREATED} lançamento(s) novo(s) entraram."
-          fi
-          # O log mostra só o tamanho do tópico e o id da mensagem (nunca o tópico), para conferir.
-          RESP=$(curl -sS -w '\n%{http_code}' -H "Title: $TITLE" -H "Tags: $TAGS" -H "Click: $RUN_URL" -d "$MSG" "https://ntfy.sh/$TOPIC" || true)
-          CODE=$(printf '%s' "$RESP" | tail -n1)
-          ID=$(printf '%s' "$RESP" | head -n1 | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
-          echo "ntfy: HTTP $CODE, mensagem ${ID:-?}, tópico com ${#TOPIC} caracteres."
-          [ "$CODE" = "200" ] || echo "::warning::O ntfy não aceitou o aviso (HTTP $CODE)."

@@ -16,7 +16,8 @@
  * Segurança: o script nunca imprime segredos nem valores/descrições de
  * transações no log — só contagens. Os logs do GitHub Actions podem ser públicos.
  */
-import { appendFileSync, readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 try {
   process.loadEnvFile('.env.local');
@@ -380,9 +381,18 @@ async function writeToFirestore(openings, outsideWindowIds, cards, transactions)
     db, userRef.collection('receitas'), transactions.filter((t) => t.collection === 'receitas'));
   if (backfilled > 0) console.log(`Horário completado em ${backfilled} lançamento(s) antigo(s).`);
   console.log(`Gravado: ${createdExpenses} despesa(s), ${createdIncome} receita(s), ${createdCards} cartão(ões) novos.`);
-  // Para a notificação no celular (etapa "Avisar no celular" do workflow).
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `created=${createdExpenses + createdIncome}\n`);
   await writeQuickSummary(userRef);
+  writeNotifyData(createdExpenses, createdIncome);
+}
+
+/**
+ * Deixa para a etapa "Avisar no celular" (scripts/notify-ntfy.mjs) quantos lançamentos
+ * entraram. Fica na pasta temporária do runner: não vai para o log nem para o cache.
+ */
+function writeNotifyData(despesas, receitas) {
+  if (!process.env.RUNNER_TEMP) return;
+  // Só contagens: valores e descrições não saem do GitHub (o ntfy.sh é um serviço externo).
+  writeFileSync(join(process.env.RUNNER_TEMP, 'sync-result.json'), JSON.stringify({ despesas, receitas }));
 }
 
 /**
