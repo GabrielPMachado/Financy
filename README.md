@@ -82,44 +82,24 @@ O workflow `.github/workflows/sync-pluggy.yml` roda de hora em hora (minuto 7) e
 | `GMAIL_APP_PASSWORD` | [Senha de app](https://myaccount.google.com/apppasswords) desse Gmail: o robô pede o e-mail de acesso do Meu Pluggy e lê o código/link |
 | `MEUPLUGGY_PASSWORD` | Opcional: em vez da senha de app, para contas com senha |
 | `NTFY_TOPIC` | Opcional: tópico do app [ntfy](https://ntfy.sh) que recebe um push ao fim de cada sync manual (use um nome difícil de adivinhar) |
-| `MEUPLUGGY_STORAGE_STATE` | Sessão inicial em base64 (opcional; ver acima) |
 
 ### Atualização automática no Meu Pluggy
 
 A API da Pluggy não deixa atualizar itens do MeuPluggy, então o workflow abre o site
 (Playwright, em nuvem) e clica em **Atualizar** antes de sincronizar: Mercado Pago de
-hora em hora, Nubank às 06:00 e 18:00 (Brasília). Configuração única:
+hora em hora, Nubank às 06:00 e 18:00 (Brasília).
 
-O robô guarda a sessão do Meu Pluggy no **cache do Actions** e a renova a cada execução
-(ele salva o estado atualizado depois de cada uso), em vez de reaproveitar sempre a mesma cópia.
-Configuração:
-
-1. `npm run meupluggy:login` — abre o navegador; entre no Meu Pluggy (pode ser com Google).
-2. `npm run meupluggy:export` copia a sessão; cole no secret **`MEUPLUGGY_STORAGE_STATE`**. Só é preciso na primeira vez e quando a sessão cair.
-3. Se a sessão cair, a execução fica **vermelha** (o GitHub avisa por e-mail): repita 1 e 2.
-
-#### Renovação automática da sessão (login com Google)
-
-Se a sessão cair (o Meu Pluggy desloga a cada ~1 dia e meio), uma tarefa **no seu PC** refaz o
-login e atualiza o secret sozinha — sem Claude e sem gastar tokens. Ela usa um navegador
-dedicado já logado no Google (`.auth/profile`), então não precisa de senha:
-
-1. Crie um token fine-grained do GitHub só para o repositório, com **Secrets: Read and write**, e ponha em `.env.local` como `GITHUB_SECRETS_TOKEN`.
-2. `npm run meupluggy:setup` — uma vez: entre no Google e no Meu Pluggy na janela que abre. Já grava o secret.
-3. `powershell -ExecutionPolicy Bypass -File scripts\install-renew-task.ps1` — agenda a renovação a cada 12 h (e roda ao ligar o PC se perdeu o horário).
-4. Veja `.auth/renew.log`. Se o Google pedir verificação, rode o passo 2 de novo.
-
-O PC precisa estar ligado ao menos uma vez a cada ~12 h.
-
-*Contas com e-mail e senha* (sem Google) podem, em vez disso, cadastrar os secrets `MEUPLUGGY_EMAIL` e
-`MEUPLUGGY_PASSWORD`: aí o próprio workflow entra sozinho quando a sessão expira.
+O robô guarda a sessão do Meu Pluggy no **cache do Actions** e a renova a cada execução.
+Quando ela expira (o Meu Pluggy desloga a cada ~1 dia e meio), ele **entra sozinho**: pede o
+e-mail de acesso do Meu Pluggy e abre o link que chega no Gmail (lido por IMAP com a senha de
+app em `GMAIL_APP_PASSWORD`). Não precisa do PC.
 
 Se o clique falhar, a sincronização segue com os dados que a Pluggy já tem.
 
 #### Velocidade e horário
 
 - **No app** (Ajustes > Bancos): *Buscar agora* (~30 s, sem pedir atualização ao Meu Pluggy), *Atualizar Mercado Pago*, *Atualizar Nubank* ou os dois. O botão de atualizar do topo atualiza só o Mercado Pago.
-- **Horário confiável:** o agendamento do GitHub atrasa e pula horas. `powershell -ExecutionPolicy Bypass -File scripts\install-sync-task.ps1` cria uma tarefa no Windows que dispara o workflow de hora em hora (Nubank também às 06h e 18h de Brasília). Precisa do PC ligado e de `VITE_GITHUB_SYNC_TOKEN` (ou `GITHUB_DISPATCH_TOKEN`) no `.env.local`; log em `.auth/dispatch.log`.
+- **Pelo iPhone:** o Atalho dispara o workflow pela API do GitHub; com o secret `NTFY_TOPIC`, o resultado chega como push no app ntfy.
 
 #### Mensagens de erro
 

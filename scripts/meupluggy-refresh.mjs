@@ -3,17 +3,14 @@
  * Clica em "Atualizar" no site do Meu Pluggy (meu.pluggy.ai), porque a API da
  * Pluggy recusa atualizar itens do MeuPluggy ("MeuPluggy item cant be updated").
  *
- *   node scripts/meupluggy-refresh.mjs login                 -> abre o Chrome para você entrar
- *                                                               uma vez e salva a sessão em .auth/
  *   node scripts/meupluggy-refresh.mjs refresh "Mercado Pago" "Nubank"
  *                                                            -> atualiza os bancos citados
  *
- * Sessão, em ordem de preferência:
- *   1. .auth/meupluggy.json  (a mais recente: no Actions vem do cache entre execuções)
- *   2. secret MEUPLUGGY_STORAGE_STATE (o mesmo arquivo, em base64)
- *   3. login automático quando a sessão expira (dura ~1 dia e meio) ou não existe:
- *      MEUPLUGGY_EMAIL + GMAIL_APP_PASSWORD (pede o e-mail de acesso e lê o código ou
- *      o link no Gmail) ou MEUPLUGGY_EMAIL + MEUPLUGGY_PASSWORD. Nada disso é impresso. MEUPLUGGY_FORCE_LOGIN=1 força esse caminho (teste).
+ * Sessão: .auth/meupluggy.json (no Actions vem do cache entre execuções). Quando ela
+ * expira (dura ~1 dia e meio) ou não existe, entra sozinho: MEUPLUGGY_EMAIL +
+ * GMAIL_APP_PASSWORD (pede o e-mail de acesso e abre o link ou digita o código que
+ * chega no Gmail) ou MEUPLUGGY_EMAIL + MEUPLUGGY_PASSWORD. Nada disso é impresso.
+ * MEUPLUGGY_FORCE_LOGIN=1 força o login (teste).
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -21,46 +18,6 @@ import { chromium } from 'playwright';
 const SITE = 'https://meu.pluggy.ai';
 const STATE_FILE = '.auth/meupluggy.json';
 const [mode, ...banks] = process.argv.slice(2);
-
-/**
- * Abre um navegador VISÍVEL para o login manual. Prefere um navegador já
- * instalado (logins do Google costumam bloquear navegadores "de teste").
- * Ordem: BROWSER_PATH (caminho do .exe do seu navegador) > Chrome > Edge >
- * Chromium do Playwright (instale com: npx playwright install chromium).
- */
-async function launchVisibleBrowser() {
-  const options = { headless: false, args: ['--disable-blink-features=AutomationControlled'] };
-  const attempts = [
-    ...(process.env.BROWSER_PATH ? [{ executablePath: process.env.BROWSER_PATH }] : []),
-    { channel: 'chrome' },
-    { channel: 'msedge' },
-    {},
-  ];
-  for (const attempt of attempts) {
-    try {
-      return await chromium.launch({ ...options, ...attempt });
-    } catch {
-      // tenta o próximo
-    }
-  }
-  throw new Error(
-    'Nenhum navegador encontrado. Rode "npx playwright install chromium" ou defina BROWSER_PATH com o caminho do .exe do seu navegador.'
-  );
-}
-
-async function login() {
-  const browser = await launchVisibleBrowser();
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.goto(SITE, { waitUntil: 'commit', timeout: 120_000 });
-  console.log('Faça login na janela que abriu. Aguardando (até 5 min)…');
-  await page.waitForURL(/meu\.pluggy\.ai\/(overview|connections|flow|assets)/, { timeout: 300_000 });
-  await page.waitForTimeout(3000);
-  mkdirSync('.auth', { recursive: true });
-  await context.storageState({ path: STATE_FILE });
-  await browser.close();
-  console.log(`Sessão salva em ${STATE_FILE}. Esse arquivo é um segredo: não commite nem compartilhe.`);
-}
 
 /** Erro com um código curto; o workflow o repassa ao app (uma mensagem diferente por causa). */
 class RefreshError extends Error {
@@ -86,13 +43,10 @@ function reportReason(code) {
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `reason=${code}\n`);
 }
 
-/** Sessão salva (arquivo mais recente > secret), ou undefined se não houver. */
+/** Sessão salva pela execução anterior (cache do Actions), ou undefined se não houver. */
 function loadSavedState() {
   if (process.env.MEUPLUGGY_FORCE_LOGIN === '1') return undefined;
   if (existsSync(STATE_FILE)) return JSON.parse(readFileSync(STATE_FILE, 'utf8'));
-  if (process.env.MEUPLUGGY_STORAGE_STATE) {
-    return JSON.parse(Buffer.from(process.env.MEUPLUGGY_STORAGE_STATE, 'base64').toString('utf8'));
-  }
   return undefined;
 }
 
@@ -340,7 +294,7 @@ async function refresh() {
   }
 }
 
-(mode === 'login' ? login() : mode === 'refresh' ? refresh() : Promise.reject(new Error('Use: login | refresh <banco…>')))
+(mode === 'refresh' ? refresh() : Promise.reject(new Error('Use: refresh <banco…>')))
   .catch((err) => {
     console.error(err.message);
     process.exit(1);

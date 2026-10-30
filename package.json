@@ -11,12 +11,7 @@
     "lint": "tsc --noEmit",
     "sync:pluggy": "node scripts/sync-pluggy.mjs",
     "sync:pluggy:dry": "node scripts/sync-pluggy.mjs --dry",
-    "sync:dispatch": "node scripts/dispatch-sync.mjs",
-    "meupluggy:login": "node scripts/meupluggy-refresh.mjs login",
-    "meupluggy:refresh": "node scripts/meupluggy-refresh.mjs refresh",
-    "meupluggy:export": "node scripts/meupluggy-export-state.mjs",
-    "meupluggy:setup": "node scripts/meupluggy-renew.mjs setup",
-    "meupluggy:renew": "node scripts/meupluggy-renew.mjs renew"
+    "meupluggy:refresh": "node scripts/meupluggy-refresh.mjs refresh"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -46,7 +41,6 @@
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "firebase-admin": "^14.5.0",
-    "libsodium-wrappers": "^0.8.4",
     "playwright": "^1.64.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
