@@ -86,8 +86,8 @@ O workflow `.github/workflows/sync-pluggy.yml` roda de hora em hora (minuto 7) e
 ### Atualização automática no Meu Pluggy
 
 A API da Pluggy não deixa atualizar itens do MeuPluggy, então o workflow abre o site
-(Playwright, em nuvem) e clica em **Atualizar** antes de sincronizar: Mercado Pago de
-hora em hora, Nubank às 06:00 e 18:00 (Brasília).
+(Playwright, em nuvem) e clica em **Atualizar** antes de sincronizar: Mercado Pago e
+Nubank, de hora em hora.
 
 O robô guarda a sessão do Meu Pluggy no **cache do Actions** e a renova a cada execução.
 Quando ela expira (o Meu Pluggy desloga a cada ~1 dia e meio), ele **entra sozinho**: pede o
