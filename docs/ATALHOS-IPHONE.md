@@ -44,7 +44,7 @@ Dados usados nas ações (não são segredos):
 7. **Mostrar alerta**, com a mensagem sendo o *Valor do dicionário* (popup de vidro do iOS, só um botão OK). O texto já vem com mini gráfico do saldo, barra de gasto e categorias em caracteres.
    - *Título opcional:* antes do alerta, **Obter valor do dicionário** com a chave `fields.titulo.stringValue` (algo como `Financy · 30 out`) e use como título. Se preferir, deixe `Financy` fixo.
 
-**Versão em cartão de tela cheia (opcional):** no lugar das ações 6 e 7, use **Obter valor do dicionário** com a chave `fields.html.stringValue`, depois **Definir nome** (do item) para `resumo.html` e **Visualização rápida**. Abre uma página escura com gráficos em SVG, mas **não é o popup de vidro**.
+**Versão com gráficos dentro do popup de vidro (SVG):** no lugar das ações 6 e 7, use **Obter valor do dicionário** com a chave `fields.htmlPopup.stringValue`, depois **Definir nome** (do item) para `resumo.html` e **Mostrar resultado**. O iOS renderiza o HTML, com o gráfico do saldo, o anel de gasto e os pendentes, dentro da caixa de vidro. Em *Mostrar resultado*, toque na setinha e desligue **Mostrar Botão Cancelar**. O cartão é compacto, para caber sem rolar. A chave `fields.html.stringValue` traz uma versão maior (com categorias e últimos lançamentos), para a **Visualização rápida** em tela cheia.
 
 ## Atalho "Novo trabalho" (2 toques)
 

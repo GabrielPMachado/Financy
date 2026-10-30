@@ -38,6 +38,8 @@ export interface QuickSummary {
   texto: string;
   /** Cartão em HTML (fundo escuro, estilo ilha) para o Atalho abrir na Visualização Rápida. */
   html: string;
+  /** Versão compacta do cartão para caber dentro do popup de vidro (Mostrar resultado), sem rolagem. */
+  htmlPopup: string;
   /** Uma categoria por linha: o Atalho separa por linha e mostra a lista. */
   categoriasDespesa: string;
   categoriasReceita: string;
@@ -187,8 +189,14 @@ const CARD_CSS = [
   '.t{margin-top:16px;font-size:12px;color:#8e8e93;text-align:center}',
 ].join('');
 
-/** Página autocontida (sem recursos externos): cartão escuro com gráficos em SVG, igual ao saldo do app. */
-function buildHtml(d: CardData): string {
+/** Ajustes da versão do popup: fundo transparente (o vidro aparece atrás) e medidas menores. */
+const POPUP_CSS = 'body{background:transparent;padding:4px}.c{background:#1c1c1eb3;border-radius:26px;padding:16px;box-shadow:none}.s{font-size:34px}.l{margin-top:12px}.sp{margin-top:2px}.sp svg{height:42px}.r{margin-top:10px;padding:10px}.pill{margin-top:8px;padding:10px 12px}.t{margin-top:10px}';
+
+/**
+ * Página autocontida (sem recursos externos): cartão escuro com gráficos em SVG, igual ao saldo do app.
+ * `popup` tira as listas (categorias e últimos lançamentos) e deixa o fundo transparente, para caber no popup.
+ */
+function buildHtml(d: CardData, popup = false): string {
   const categories = d.categories
     .map(
       (c, i) =>
@@ -207,7 +215,7 @@ function buildHtml(d: CardData): string {
   return [
     '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">',
-    `<style>${CARD_CSS}</style></head><body><div class="c">`,
+    `<style>${CARD_CSS}${popup ? POPUP_CSS : ''}</style></head><body><div class="c">`,
     `<div class="h"><div class="logo">${ICON_WALLET}</div><b>Financy</b><span>${escapeHtml(d.dateLabel)}</span></div>`,
     '<div class="l">Saldo</div>',
     `<div class="s">${escapeHtml(d.saldo)}</div>`,
@@ -216,8 +224,8 @@ function buildHtml(d: CardData): string {
     `<div class="k">${ICON_UP} Entradas <b>${escapeHtml(d.entradas)}</b></div>`,
     `<div class="k">${ICON_DOWN} Gastos <b>${escapeHtml(d.gastos)}</b></div></div></div>`,
     pending,
-    categories ? `<h3>Onde você gastou</h3>${categories}` : '',
-    recent ? `<h3>Últimos</h3><ul>${recent}</ul>` : '',
+    !popup && categories ? `<h3>Onde você gastou</h3>${categories}` : '',
+    !popup && recent ? `<h3>Últimos</h3><ul>${recent}</ul>` : '',
     `<div class="t">Atualizado às ${escapeHtml(d.time)}</div>`,
     '</div></body></html>',
   ].join('');
@@ -335,6 +343,19 @@ export function buildQuickSummary(
   }
   lines.push('', `🕓  Atualizado às ${time}`);
 
+  const card: CardData = {
+    saldo: brl(saldo),
+    entradas: brl(entradasMes),
+    gastos: brl(gastosMes),
+    spentPercent,
+    pendentes,
+    recent: recentLines,
+    categories: categoryBars,
+    series,
+    dateLabel: dateLabelOf(now),
+    time,
+  };
+
   const namesOf = (type: SummaryCategory['type']): string =>
     categories.filter((c) => c.type === type).map((c) => c.name).join('\n');
 
@@ -347,18 +368,8 @@ export function buildQuickSummary(
     pendentesQtd,
     titulo: `Financy · ${dateLabelOf(now)}`,
     texto: lines.join('\n'),
-    html: buildHtml({
-      saldo: brl(saldo),
-      entradas: brl(entradasMes),
-      gastos: brl(gastosMes),
-      spentPercent,
-      pendentes,
-      recent: recentLines,
-      categories: categoryBars,
-      series,
-      dateLabel: dateLabelOf(now),
-      time,
-    }),
+    html: buildHtml(card),
+    htmlPopup: buildHtml(card, true),
     categoriasDespesa: namesOf('expense'),
     categoriasReceita: namesOf('income'),
   };
