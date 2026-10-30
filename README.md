@@ -60,7 +60,6 @@ O script `scripts/sync-pluggy.mjs` busca as transações a partir de 01/10/2026 
 
 > Transferências entre as suas próprias contas aparecem como saída em uma e entrada na outra.
 
-> Trocou de conta no Meu Pluggy ou reconectou um banco? Pode trocar o `PLUGGY_ITEM_IDS` sem medo: o sync reconhece o que já foi importado (mesma data, valor e cartão) e reaproveita o cartão e o saldo inicial existentes, sem duplicar.
 
 ### Configuração única
 
@@ -80,7 +79,9 @@ O workflow `.github/workflows/sync-pluggy.yml` roda de hora em hora (minuto 7) e
 | `PLUGGY_ITEM_IDS` | IDs dos itens separados por vírgula |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON completo da conta de serviço do Firebase |
 | `SYNC_USER_EMAIL` | E-mail da conta do Financy que recebe os dados |
-| `MEUPLUGGY_EMAIL` / `MEUPLUGGY_PASSWORD` | Opcional: só para contas com e-mail e senha |
+| `MEUPLUGGY_EMAIL` | E-mail da conta do Meu Pluggy (um Gmail), para o robô entrar sozinho |
+| `GMAIL_APP_PASSWORD` | [Senha de app](https://myaccount.google.com/apppasswords) desse Gmail: o robô pede o e-mail de acesso do Meu Pluggy e lê o código/link |
+| `MEUPLUGGY_PASSWORD` | Opcional: em vez da senha de app, para contas com senha |
 | `MEUPLUGGY_STORAGE_STATE` | Sessão inicial em base64 (opcional; ver acima) |
 
 ### Atualização automática no Meu Pluggy

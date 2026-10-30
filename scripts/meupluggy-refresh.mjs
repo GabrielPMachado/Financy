@@ -11,9 +11,9 @@
  * Sessão, em ordem de preferência:
  *   1. .auth/meupluggy.json  (a mais recente: no Actions vem do cache entre execuções)
  *   2. secret MEUPLUGGY_STORAGE_STATE (o mesmo arquivo, em base64)
- *   3. login automático com MEUPLUGGY_EMAIL e MEUPLUGGY_PASSWORD, quando a sessão
- *      expira (dura ~1 dia e meio) ou não existe. A senha só é digitada no site do
- *      Meu Pluggy e nunca é impressa. MEUPLUGGY_FORCE_LOGIN=1 força esse caminho (teste).
+ *   3. login automático quando a sessão expira (dura ~1 dia e meio) ou não existe:
+ *      MEUPLUGGY_EMAIL + GMAIL_APP_PASSWORD (pede o e-mail de acesso e lê o código ou
+ *      o link no Gmail) ou MEUPLUGGY_EMAIL + MEUPLUGGY_PASSWORD. Nada disso é impresso. MEUPLUGGY_FORCE_LOGIN=1 força esse caminho (teste).
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -96,12 +96,17 @@ function loadSavedState() {
   return undefined;
 }
 
-/** Entra no Meu Pluggy com e-mail e senha (login por formulário, sem Google). */
+/**
+ * Entra no Meu Pluggy sozinho. Com MEUPLUGGY_PASSWORD, digita a senha; com
+ * GMAIL_APP_PASSWORD, pede o e-mail de acesso e usa o código ou o link que chega
+ * no Gmail (senha de app do Google, só para ler a caixa por IMAP).
+ */
 async function loginWithCredentials(page, missingCredentialsCode) {
   const email = process.env.MEUPLUGGY_EMAIL;
   const password = process.env.MEUPLUGGY_PASSWORD;
-  if (!email || !password) {
-    throw new RefreshError(missingCredentialsCode, 'Sem sessão válida e sem MEUPLUGGY_EMAIL/MEUPLUGGY_PASSWORD para entrar sozinho.');
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+  if (!email || (!password && !gmailAppPassword)) {
+    throw new RefreshError(missingCredentialsCode, 'Sem sessão válida e sem MEUPLUGGY_EMAIL + GMAIL_APP_PASSWORD (ou MEUPLUGGY_PASSWORD) para entrar sozinho.');
   }
 
   await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -118,20 +123,95 @@ async function loginWithCredentials(page, missingCredentialsCode) {
   await emailField.waitFor({ timeout: 45_000 });
   await emailField.fill(email);
 
-  const passwordField = page.locator('input[type="password"]').first();
-  if (!(await passwordField.isVisible().catch(() => false))) {
-    await submit.click(); // formulário em duas etapas (e-mail, depois senha)
-    await passwordField.waitFor({ timeout: 45_000 });
+  if (password) {
+    const passwordField = page.locator('input[type="password"]').first();
+    if (!(await passwordField.isVisible().catch(() => false))) {
+      await submit.click(); // formulário em duas etapas (e-mail, depois senha)
+      await passwordField.waitFor({ timeout: 45_000 });
+    }
+    await passwordField.fill(password);
+    await submit.click();
+  } else {
+    await loginWithEmailCode(page, submit, email, gmailAppPassword);
   }
-  await passwordField.fill(password);
-  await submit.click();
 
   try {
     await page.waitForURL(/meu\.pluggy\.ai\/(overview|connections|flow|assets)/, { timeout: 60_000 });
   } catch {
-    throw new RefreshError('login-falhou', 'O login automático não chegou ao painel (senha incorreta, verificação extra ou captcha?).');
+    throw new RefreshError('login-falhou', 'O login automático não chegou ao painel (código/link não aceito, verificação extra ou captcha?).');
   }
   console.log('Login automático no Meu Pluggy concluído.');
+}
+
+/** Pede o e-mail de acesso e entra com o código (digitado) ou o link (aberto). */
+async function loginWithEmailCode(page, submit, email, gmailAppPassword) {
+  const requestedAt = Date.now() - 60_000; // folga para o relógio do servidor de e-mail
+  await submit.click();
+  console.log('E-mail de acesso pedido ao Meu Pluggy; aguardando no Gmail…');
+  const { code, link } = await waitForAccessEmail(email, gmailAppPassword, requestedAt);
+
+  const codeInputs = page.locator(
+    'input[autocomplete="one-time-code"], input[inputmode="numeric"], input[name*="code" i], input[name*="otp" i], input[name*="token" i]'
+  );
+  const hasCodeField = await codeInputs.first().isVisible({ timeout: 5_000 }).catch(() => false);
+  if (code && hasCodeField) {
+    console.log('Código recebido; digitando.');
+    if ((await codeInputs.count()) > 1) {
+      // Uma caixa por dígito: o site passa para a próxima sozinho.
+      await codeInputs.first().click();
+      await page.keyboard.type(code, { delay: 80 });
+    } else {
+      await codeInputs.first().fill(code);
+    }
+    if (await submit.isVisible().catch(() => false)) await submit.click().catch(() => {});
+  } else if (link) {
+    console.log('Link de acesso recebido; abrindo.');
+    await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  } else {
+    throw new RefreshError('login-falhou', 'O e-mail do Meu Pluggy chegou, mas sem código nem link reconhecível.');
+  }
+}
+
+/** Lê o Gmail (IMAP) até chegar um e-mail do Pluggy depois de `since`; devolve código e/ou link. */
+async function waitForAccessEmail(user, pass, since) {
+  const { ImapFlow } = await import('imapflow');
+  const { simpleParser } = await import('mailparser');
+  const client = new ImapFlow({ host: 'imap.gmail.com', port: 993, secure: true, auth: { user, pass }, logger: false });
+  try {
+    await client.connect();
+  } catch {
+    throw new RefreshError('login-falhou', 'O Gmail recusou a senha de app (confira GMAIL_APP_PASSWORD).');
+  }
+  try {
+    for (let attempt = 0; attempt < 24; attempt++) { // até ~2 min
+      const lock = await client.getMailboxLock('INBOX');
+      try {
+        const uids = await client.search({ since: new Date(since - 86_400_000), from: 'pluggy' }, { uid: true });
+        for (const uid of [...(uids || [])].reverse()) {
+          const msg = await client.fetchOne(String(uid), { internalDate: true, source: true }, { uid: true });
+          if (!msg || new Date(msg.internalDate).getTime() < since) continue;
+          const found = extractAccess(await simpleParser(msg.source));
+          if (found.code || found.link) return found;
+        }
+      } finally {
+        lock.release();
+      }
+      await new Promise((r) => setTimeout(r, 5_000));
+    }
+  } finally {
+    await client.logout().catch(() => {});
+  }
+  throw new RefreshError('login-falhou', 'O e-mail de acesso do Meu Pluggy não chegou ao Gmail em 2 minutos.');
+}
+
+function extractAccess(mail) {
+  const text = `${mail.subject || ''}\n${mail.text || ''}`;
+  // Número solto (não parte de data, hora ou valor): prefere 6 dígitos.
+  const loose = (n) => new RegExp(`(?<![\\d/.,:-]|[\\d][/.,:-])\\d{${n}}(?!\\d|[/.,:-]\\d)`);
+  const code = (text.match(loose('6')) || text.match(loose('4,8')))?.[0];
+  const hrefs = [...String(mail.html || '').matchAll(/href="([^"]+)"/g)].map((m) => m[1].replaceAll('&amp;', '&'));
+  const link = hrefs.find((h) => /^https:\/\/[^/]*pluggy\.ai\//.test(h) && /token|code|magic|verify|login|auth|callback/i.test(h) && !/unsubscribe|descadastr/i.test(h));
+  return { code, link };
 }
 
 async function refreshBank(page, bank) {
@@ -197,7 +277,7 @@ async function refresh() {
           await refreshBank(page, bank);
         } catch (err) {
           if (!(err instanceof SessionExpiredError) || loggedInThisRun) throw err;
-          console.log('Sessão expirada: entrando com e-mail e senha…');
+          console.log('Sessão expirada: entrando sozinho…');
           await autoLogin('sessao-expirada');
           await refreshBank(page, bank);
         }

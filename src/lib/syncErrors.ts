@@ -9,9 +9,9 @@
  */
 
 const REFRESH_FAILURES: Record<string, string> = {
-  'sem-sessao': 'Meu Pluggy: não há sessão salva. No PC, rode "npm run meupluggy:setup".',
-  'sessao-expirada': 'Meu Pluggy: a sessão expirou. No PC, rode "npm run meupluggy:renew" (ou o setup).',
-  'login-falhou': 'Meu Pluggy: o login automático falhou (senha incorreta, verificação extra ou captcha).',
+  'sem-sessao': 'Meu Pluggy: não há sessão salva nem login automático. Cadastre os secrets MEUPLUGGY_EMAIL e GMAIL_APP_PASSWORD.',
+  'sessao-expirada': 'Meu Pluggy: a sessão expirou. Cadastre os secrets MEUPLUGGY_EMAIL e GMAIL_APP_PASSWORD para o robô entrar sozinho.',
+  'login-falhou': 'Meu Pluggy: o login automático falhou (e-mail de acesso não chegou, senha de app do Gmail errada ou captcha).',
   'banco-nao-encontrado': 'Meu Pluggy: o banco não aparece em Conexões. Reconecte-o em meu.pluggy.ai.',
   'meupluggy-fora': 'O Meu Pluggy está fora do ar ou lento. Tente de novo em alguns minutos.',
   'atualizar-outro': 'A atualização no Meu Pluggy falhou por outro motivo. Veja o log no GitHub Actions.',

@@ -290,80 +290,6 @@ async function pruneOldImports(db, colRef) {
   return old.length;
 }
 
-// --- Itens reconectados -----------------------------------------------------
-// Ao trocar de conta no Meu Pluggy (ou reconectar um banco), a Pluggy devolve as
-// mesmas contas e transações com IDs novos. Sem isto, o app ganharia um cartão e
-// um saldo inicial repetidos, e todas as transações desde SYNC_FROM em dobro.
-
-/**
- * Faz cartões e saldos de abertura de contas novas usarem o ID do que já existe:
- * cartão pelo banco + 4 últimos dígitos; saldo inicial pela descrição (um por banco).
- */
-async function reuseExistingIds(userRef, openings, cards, transactions) {
-  const existingCards = (await userRef.collection('cartoes').where('source', '==', 'pluggy').get()).docs;
-  const cardAlias = new Map();
-  for (const card of cards) {
-    if (existingCards.some((d) => d.id === card.id)) continue;
-    const old = existingCards.find((d) => d.get('bank') === card.data.bank && d.get('lastDigits') === card.data.lastDigits);
-    if (old) cardAlias.set(card.id, old.id);
-  }
-  const alias = (id) => cardAlias.get(id) ?? id;
-  cards.forEach((c) => { c.id = alias(c.id); });
-  transactions.forEach(({ data }) => {
-    if (data.cardId) data.cardId = alias(data.cardId);
-    if (data.cardPaymentFor) data.cardPaymentFor = alias(data.cardPaymentFor);
-  });
-
-  const existingOpenings = [];
-  for (const name of ['receitas', 'despesas']) {
-    const snap = await userRef.collection(name).where('source', '==', 'pluggy').get();
-    existingOpenings.push(...snap.docs.filter((d) => /^pluggy-(saldo-inicial|fatura-anterior)-/.test(d.id)));
-  }
-  for (const entry of openings) {
-    if (entry.data.cardId) {
-      const cardId = alias(entry.data.cardId);
-      entry.id = `pluggy-fatura-anterior-${cardId.slice('pluggy-'.length)}`;
-      entry.data.cardId = cardId;
-    } else if (!existingOpenings.some((d) => d.id === entry.id)) {
-      const old = existingOpenings.filter((d) => d.get('description') === entry.data.description);
-      if (old.length === 1) entry.id = old[0].id;
-    }
-  }
-}
-
-/**
- * Tira da lista as transações cujo ID ainda não existe, mas que já estão no app
- * com outro ID: mesma data, valor e cartão (e mesmo horário, quando os dois têm).
- * Cada lançamento existente só cobre uma transação nova, e os que batem pelo ID
- * são reservados antes, para compras iguais no mesmo dia não sumirem.
- */
-async function dropAlreadyImported(userRef, transactions) {
-  let skipped = 0;
-  for (const name of ['despesas', 'receitas']) {
-    const items = transactions.filter((t) => t.collection === name);
-    const docs = (await userRef.collection(name).where('source', '==', 'pluggy').get()).docs
-      .filter((d) => !/^pluggy-(saldo-inicial|fatura-anterior)-/.test(d.id));
-    const ids = new Set(items.map((t) => t.id));
-    const free = docs.filter((d) => !ids.has(d.id));
-    const known = new Set(docs.map((d) => d.id));
-    const drop = new Set();
-    for (const item of items) {
-      if (known.has(item.id)) continue;
-      const { date, time, amount, cardId } = item.data;
-      const idx = free.findIndex((d) => d.get('date') === date
-        && Number(d.get('amount')) === amount
-        && (d.get('cardId') || undefined) === cardId
-        && (!time || !d.get('time') || d.get('time') === time));
-      if (idx === -1) continue;
-      free.splice(idx, 1);
-      drop.add(item);
-    }
-    skipped += drop.size;
-    for (let i = transactions.length - 1; i >= 0; i--) if (drop.has(transactions[i])) transactions.splice(i, 1);
-  }
-  return skipped;
-}
-
 // --- Principal --------------------------------------------------------------
 
 async function main() {
@@ -437,7 +363,6 @@ async function main() {
 async function writeToFirestore(openings, outsideWindowIds, cards, transactions) {
   const { db, uid } = await openFirestore();
   const userRef = db.collection('users').doc(uid);
-  await reuseExistingIds(userRef, openings, cards, transactions);
   await upsertOpenings(db, userRef, openings);
   for (const id of outsideWindowIds) {
     await userRef.collection('despesas').doc(id).delete();
@@ -448,8 +373,6 @@ async function writeToFirestore(openings, outsideWindowIds, cards, transactions)
   if (prunedExpenses + prunedIncome > 0) {
     console.log(`Removido: ${prunedExpenses} despesa(s) e ${prunedIncome} receita(s) importadas antes de ${SYNC_FROM}.`);
   }
-  const skipped = await dropAlreadyImported(userRef, transactions);
-  if (skipped > 0) console.log(`Ignorado: ${skipped} lançamento(s) já importado(s) com outro ID (item reconectado).`);
   const createdCards = await createMissing(db, userRef.collection('cartoes'), cards);
   const createdExpenses = await createMissing(
     db, userRef.collection('despesas'), transactions.filter((t) => t.collection === 'despesas'));
