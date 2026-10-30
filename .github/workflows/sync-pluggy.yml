@@ -166,7 +166,9 @@ jobs:
           CREATED: ${{ steps.sync.outputs.created }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          [ -z "$NTFY_TOPIC" ] && exit 0
+          # Tira espaços, quebras de linha e crases que vêm junto ao colar o secret.
+          TOPIC=$(printf '%s' "$NTFY_TOPIC" | tr -d '[:space:]`')
+          [ -z "$TOPIC" ] && exit 0
           if [ "$STATUS" = "success" ]; then
             TITLE="Bancos sincronizados"; TAGS="white_check_mark"
             MSG="${CREATED:-0} lançamento(s) novo(s)."
@@ -175,4 +177,9 @@ jobs:
             MSG="Motivo: ${REASON:-desconhecido}."
             [ -n "$CREATED" ] && MSG="$MSG Mesmo assim, ${CREATED} lançamento(s) novo(s) entraram."
           fi
-          curl -fsS -H "Title: $TITLE" -H "Tags: $TAGS" -H "Click: $RUN_URL" -d "$MSG" "https://ntfy.sh/$NTFY_TOPIC" > /dev/null || true
+          # O log mostra só o tamanho do tópico e o id da mensagem (nunca o tópico), para conferir.
+          RESP=$(curl -sS -w '\n%{http_code}' -H "Title: $TITLE" -H "Tags: $TAGS" -H "Click: $RUN_URL" -d "$MSG" "https://ntfy.sh/$TOPIC" || true)
+          CODE=$(printf '%s' "$RESP" | tail -n1)
+          ID=$(printf '%s' "$RESP" | head -n1 | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
+          echo "ntfy: HTTP $CODE, mensagem ${ID:-?}, tópico com ${#TOPIC} caracteres."
+          [ "$CODE" = "200" ] || echo "::warning::O ntfy não aceitou o aviso (HTTP $CODE)."
