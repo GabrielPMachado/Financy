@@ -380,6 +380,8 @@ async function writeToFirestore(openings, outsideWindowIds, cards, transactions)
     db, userRef.collection('receitas'), transactions.filter((t) => t.collection === 'receitas'));
   if (backfilled > 0) console.log(`Horário completado em ${backfilled} lançamento(s) antigo(s).`);
   console.log(`Gravado: ${createdExpenses} despesa(s), ${createdIncome} receita(s), ${createdCards} cartão(ões) novos.`);
+  // Para a notificação no celular (etapa "Avisar no celular" do workflow).
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `created=${createdExpenses + createdIncome}\n`);
   await writeQuickSummary(userRef);
 }
 
