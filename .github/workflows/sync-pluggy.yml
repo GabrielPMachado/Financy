@@ -2,7 +2,7 @@ name: Sincronizar bancos (Open Finance)
 
 # 1) Pede ao site do Meu Pluggy para atualizar os bancos (a API não permite);
 # 2) busca as transações novas do Nubank e do Mercado Pago e grava no Firestore.
-# Agendado: Mercado Pago toda hora; Nubank também às 06:00 e 18:00 (Brasília).
+# Agendado: Mercado Pago e Nubank de hora em hora.
 # Manual (botão do app ou Actions > Run workflow): dá para escolher
 #   - refresh: "true" pede a atualização ao Meu Pluggy (1 a 3 min); "false" só
 #     busca o que o Meu Pluggy já tem (cerca de 30 s, sem abrir navegador);
@@ -55,9 +55,8 @@ jobs:
           IN_REFRESH: ${{ inputs.refresh }}
           IN_BANKS: ${{ inputs.banks }}
         run: |
-          HOUR=$(date -u +%H)
           REFRESH=true
-          LIST='"Mercado Pago"'
+          LIST='"Mercado Pago" "Nubank"'
           if [ "$EVENT" = "workflow_dispatch" ]; then
             REFRESH="${IN_REFRESH:-true}"
             case "$IN_BANKS" in
@@ -65,8 +64,6 @@ jobs:
               "Nubank") LIST='"Nubank"' ;;
               *) LIST='"Mercado Pago" "Nubank"' ;;
             esac
-          elif [ "$HOUR" = "09" ] || [ "$HOUR" = "21" ]; then
-            LIST='"Mercado Pago" "Nubank"'
           fi
           echo "refresh=$REFRESH" >> "$GITHUB_OUTPUT"
           echo "list=$LIST" >> "$GITHUB_OUTPUT"
