@@ -98,7 +98,7 @@ Se o clique falhar, a sincronização segue com os dados que a Pluggy já tem.
 
 #### Velocidade e horário
 
-- **No app** (Ajustes > Bancos): *Buscar agora* (~30 s, sem pedir atualização ao Meu Pluggy), *Atualizar Mercado Pago*, *Atualizar Nubank* ou os dois. O botão de atualizar do topo atualiza só o Mercado Pago.
+- **No app** (Ajustes > Bancos): *Buscar agora* (~30 s, sem pedir atualização ao Meu Pluggy), *Atualizar Mercado Pago*, *Atualizar Nubank* ou os dois. O botão de atualizar do topo atualiza os dois bancos.
 - **Pelo iPhone:** o Atalho dispara o workflow pela API do GitHub; com o secret `NTFY_TOPIC`, o resultado chega como push no app ntfy.
 
 #### Mensagens de erro

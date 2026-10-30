@@ -45,8 +45,8 @@ export interface SyncOptions {
   bank: SyncBank;
 }
 
-/** Botão do cabeçalho: atualiza só o Mercado Pago, o banco que mais muda. */
-export const DEFAULT_SYNC_OPTIONS: SyncOptions = { refresh: true, bank: 'Mercado Pago' };
+/** Botão do cabeçalho: atualiza os dois bancos. */
+export const DEFAULT_SYNC_OPTIONS: SyncOptions = { refresh: true, bank: 'todos' };
 
 /**
  * Token embutido no build (VITE_GITHUB_SYNC_TOKEN no .env.local, que o git ignora),
