@@ -189,14 +189,10 @@ const CARD_CSS = [
   '.t{margin-top:16px;font-size:12px;color:#8e8e93;text-align:center}',
 ].join('');
 
-/** Ajustes da versão do popup: fundo transparente (o vidro aparece atrás) e medidas menores. */
-const POPUP_CSS = 'body{background:transparent;padding:4px}.c{background:#1c1c1eb3;border-radius:26px;padding:16px;box-shadow:none}.s{font-size:34px}.l{margin-top:12px}.sp{margin-top:2px}.sp svg{height:42px}.r{margin-top:10px;padding:10px}.pill{margin-top:8px;padding:10px 12px}.t{margin-top:10px}';
-
 /**
  * Página autocontida (sem recursos externos): cartão escuro com gráficos em SVG, igual ao saldo do app.
- * `popup` tira as listas (categorias e últimos lançamentos) e deixa o fundo transparente, para caber no popup.
  */
-function buildHtml(d: CardData, popup = false): string {
+function buildHtml(d: CardData): string {
   const categories = d.categories
     .map(
       (c, i) =>
@@ -215,7 +211,7 @@ function buildHtml(d: CardData, popup = false): string {
   return [
     '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">',
-    `<style>${CARD_CSS}${popup ? POPUP_CSS : ''}</style></head><body><div class="c">`,
+    `<style>${CARD_CSS}</style></head><body><div class="c">`,
     `<div class="h"><div class="logo">${ICON_WALLET}</div><b>Financy</b><span>${escapeHtml(d.dateLabel)}</span></div>`,
     '<div class="l">Saldo</div>',
     `<div class="s">${escapeHtml(d.saldo)}</div>`,
@@ -224,9 +220,43 @@ function buildHtml(d: CardData, popup = false): string {
     `<div class="k">${ICON_UP} Entradas <b>${escapeHtml(d.entradas)}</b></div>`,
     `<div class="k">${ICON_DOWN} Gastos <b>${escapeHtml(d.gastos)}</b></div></div></div>`,
     pending,
-    !popup && categories ? `<h3>Onde você gastou</h3>${categories}` : '',
-    !popup && recent ? `<h3>Últimos</h3><ul>${recent}</ul>` : '',
+    categories ? `<h3>Onde você gastou</h3>${categories}` : '',
+    recent ? `<h3>Últimos</h3><ul>${recent}</ul>` : '',
     `<div class="t">Atualizado às ${escapeHtml(d.time)}</div>`,
+    '</div></body></html>',
+  ].join('');
+}
+
+/**
+ * Cartão para o popup de vidro (Mostrar resultado). A página ali tem só ~230 px de altura, então
+ * tudo é medido em fatias de 1% da altura da janela (--u): o cartão se ajusta e nunca passa dela.
+ */
+const POPUP_CSS = [
+  ':root{--u:calc(min(100vh,232px)/100)}',
+  '*{box-sizing:border-box}html,body{margin:0;background:#000}',
+  'body{padding:4px;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif}',
+  '.c{height:calc(var(--u)*100 - 8px);display:flex;flex-direction:column;justify-content:space-between;padding:calc(var(--u)*5) calc(var(--u)*6);border-radius:calc(var(--u)*11);background:linear-gradient(160deg,#1f1f22,#141416)}',
+  '.top{display:flex;justify-content:space-between;align-items:baseline;font-size:calc(var(--u)*6);color:#8e8e93;text-transform:uppercase;letter-spacing:.06em}',
+  '.s{font-size:calc(var(--u)*16);font-weight:700;letter-spacing:-.02em;line-height:1;color:#fff;text-transform:none;margin-top:calc(var(--u)*1)}',
+  '.sp svg{width:100%;height:calc(var(--u)*19);display:block}',
+  '.b{display:flex;align-items:center;gap:calc(var(--u)*6)}.b>svg{width:calc(var(--u)*29);height:calc(var(--u)*29);flex:none}',
+  '.v{flex:1;display:flex;flex-direction:column;gap:calc(var(--u)*3);font-size:calc(var(--u)*7.5)}',
+  '.k{display:flex;align-items:center;gap:calc(var(--u)*3);color:#aeaeb2}.k svg{width:calc(var(--u)*7);height:calc(var(--u)*7);flex:none}.k b{margin-left:auto;color:#fff;font-size:calc(var(--u)*8)}',
+  '.k.p{color:#ff9f0a}.k.p b{color:#ff9f0a}',
+].join('');
+
+function buildPopupHtml(d: CardData): string {
+  const pending = d.pendentes ? `<div class="k p">${ICON_HOURGLASS}Pendentes <b>${escapeHtml(d.pendentes)}</b></div>` : '';
+  return [
+    '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">',
+    `<style>${POPUP_CSS}</style></head><body><div class="c">`,
+    `<div><div class="top"><span>Saldo</span><span>${escapeHtml(d.dateLabel)} · ${escapeHtml(d.time)}</span></div><div class="s">${escapeHtml(d.saldo)}</div></div>`,
+    d.series.length > 1 ? `<div class="sp">${sparklineSvg(d.series)}</div>` : '',
+    `<div class="b">${donutSvg(d.spentPercent)}<div class="v">`,
+    `<div class="k">${ICON_UP}Entradas <b>${escapeHtml(d.entradas)}</b></div>`,
+    `<div class="k">${ICON_DOWN}Gastos <b>${escapeHtml(d.gastos)}</b></div>`,
+    `${pending}</div></div>`,
     '</div></body></html>',
   ].join('');
 }
@@ -369,7 +399,7 @@ export function buildQuickSummary(
     titulo: `Financy · ${dateLabelOf(now)}`,
     texto: lines.join('\n'),
     html: buildHtml(card),
-    htmlPopup: buildHtml(card, true),
+    htmlPopup: buildPopupHtml(card),
     categoriasDespesa: namesOf('expense'),
     categoriasReceita: namesOf('income'),
   };
