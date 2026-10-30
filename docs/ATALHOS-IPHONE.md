@@ -41,9 +41,10 @@ Dados usados nas ações (não são segredos):
    - Método: **GET**
    - Cabeçalho: `Authorization` = `Bearer ` + variável `idt` (com um espaço depois de Bearer)
 6. **Obter valor do dicionário**: chave `fields.texto.stringValue`.
-7. **Mostrar alerta**, com o título `Financy` e a mensagem sendo o *Valor do dicionário* (só um botão OK, mais limpo que o *Mostrar resultado*).
+7. **Mostrar alerta**, com a mensagem sendo o *Valor do dicionário* (popup de vidro do iOS, só um botão OK). O texto já vem com mini gráfico do saldo, barra de gasto e categorias em caracteres.
+   - *Título opcional:* antes do alerta, **Obter valor do dicionário** com a chave `fields.titulo.stringValue` (algo como `Financy · 30 out`) e use como título. Se preferir, deixe `Financy` fixo.
 
-**Versão em cartão (opcional):** no lugar das ações 6 e 7, use **Obter valor do dicionário** com a chave `fields.html.stringValue`, depois **Definir nome** (do item) para `resumo.html` e **Visualização rápida**. O iOS abre o resumo como um cartão escuro, igual ao saldo do app. Se a Visualização rápida mostrar o código em vez do cartão, volte para o alerta.
+**Versão em cartão de tela cheia (opcional):** no lugar das ações 6 e 7, use **Obter valor do dicionário** com a chave `fields.html.stringValue`, depois **Definir nome** (do item) para `resumo.html` e **Visualização rápida**. Abre uma página escura com gráficos em SVG, mas **não é o popup de vidro**.
 
 ## Atalho "Novo trabalho" (2 toques)
 

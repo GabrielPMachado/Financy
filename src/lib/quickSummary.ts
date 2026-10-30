@@ -32,7 +32,9 @@ export interface QuickSummary {
   gastosMes: number;
   pendentesTotal: number;
   pendentesQtd: number;
-  /** Texto pronto para o alerta do Atalho. */
+  /** Título do alerta do Atalho (ex: "Financy · 29 out"). */
+  titulo: string;
+  /** Texto pronto para o alerta do Atalho (popup de vidro), com mini gráficos em caracteres. */
   texto: string;
   /** Cartão em HTML (fundo escuro, estilo ilha) para o Atalho abrir na Visualização Rápida. */
   html: string;
@@ -99,6 +101,25 @@ const TOP_CATEGORIES = 4;
 const SPARK_WIDTH = 320;
 const SPARK_HEIGHT = 56;
 const DONUT_RADIUS = 34;
+const SPARK_BLOCKS = '▁▂▃▄▅▆▇█';
+const PERCENT_BAR_SEGMENTS = 10;
+const CATEGORY_DOTS = ['🟢', '🔵', '🟠', '🟣'];
+const TEXT_CATEGORIES = 3;
+
+/** Mini gráfico do saldo em caracteres (▁ a █), do mais antigo ao mais novo. */
+function sparkText(series: number[]): string {
+  const min = Math.min(...series);
+  const span = Math.max(...series) - min || 1;
+  return series
+    .map((value) => SPARK_BLOCKS[Math.min(SPARK_BLOCKS.length - 1, Math.floor(((value - min) / span) * SPARK_BLOCKS.length))])
+    .join('');
+}
+
+/** Barra de progresso em caracteres: ▰▰▰▰▰▰▰▰▰▱ */
+function percentBar(percent: number): string {
+  const filled = Math.round((Math.min(Math.max(percent, 0), 100) / 100) * PERCENT_BAR_SEGMENTS);
+  return '▰'.repeat(filled) + '▱'.repeat(PERCENT_BAR_SEGMENTS - filled);
+}
 
 /** Linha e área do gráfico do saldo (SVG), do mais antigo ao mais novo. */
 function sparklineSvg(series: number[]): string {
@@ -296,13 +317,23 @@ export function buildQuickSummary(
   }));
   const pendentes = pendentesQtd > 0 ? `${pendentesQtd} · ${brl(pendentesTotal)}` : null;
 
-  const lines = [`💰 Saldo  ${brl(saldo)}`, `📈 Entradas  ${brl(entradasMes)}`, `📉 Gastos  ${brl(gastosMes)}`];
-  if (pendentes) lines.push(`⏳ Pendentes  ${pendentes}`);
+  const series = balanceSeries(transactions, today);
+  const spentPercent = entradasMes > 0 ? (gastosMes / entradasMes) * 100 : gastosMes > 0 ? 100 : 0;
+  const categoryBars = topCategories(inMonth.filter((t) => t.type === 'expense' && !t.cardId));
+
+  const lines = [`💰  ${brl(saldo)}`, `${sparkText(series)}  ${series.length} dias`, ''];
+  lines.push(`📈  Entradas  ${brl(entradasMes)}`, `📉  Gastos  ${brl(gastosMes)}`);
+  lines.push(`${percentBar(spentPercent)}  ${Math.round(spentPercent)}% gasto`);
+  if (pendentes) lines.push('', `⏳  Pendentes  ${pendentes}`);
+  if (categoryBars.length > 0) {
+    lines.push('', 'Onde você gastou');
+    categoryBars.slice(0, TEXT_CATEGORIES).forEach((c, i) => lines.push(`${CATEGORY_DOTS[i % CATEGORY_DOTS.length]}  ${c.name}  ${c.amount}`));
+  }
   if (recentLines.length > 0) {
     lines.push('', 'Últimos');
     recentLines.forEach((r) => lines.push(`${r.income ? '🟢 +' : '🔴 −'}${r.amount}  ${r.description}`));
   }
-  lines.push('', `🕓 Atualizado às ${time}`);
+  lines.push('', `🕓  Atualizado às ${time}`);
 
   const namesOf = (type: SummaryCategory['type']): string =>
     categories.filter((c) => c.type === type).map((c) => c.name).join('\n');
@@ -314,16 +345,17 @@ export function buildQuickSummary(
     gastosMes,
     pendentesTotal,
     pendentesQtd,
+    titulo: `Financy · ${dateLabelOf(now)}`,
     texto: lines.join('\n'),
     html: buildHtml({
       saldo: brl(saldo),
       entradas: brl(entradasMes),
       gastos: brl(gastosMes),
-      spentPercent: entradasMes > 0 ? (gastosMes / entradasMes) * 100 : gastosMes > 0 ? 100 : 0,
+      spentPercent,
       pendentes,
       recent: recentLines,
-      categories: topCategories(inMonth.filter((t) => t.type === 'expense' && !t.cardId)),
-      series: balanceSeries(transactions, today),
+      categories: categoryBars,
+      series,
       dateLabel: dateLabelOf(now),
       time,
     }),
