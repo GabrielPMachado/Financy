@@ -150,6 +150,11 @@ async function loginWithEmailCode(page, submit, email, gmailAppPassword) {
   console.log('E-mail de acesso pedido ao Meu Pluggy; aguardando no Gmail…');
   const { code, link } = await waitForAccessEmail(email, gmailAppPassword, requestedAt);
 
+  if (link) {
+    console.log('Link de acesso recebido; abrindo.');
+    await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    return;
+  }
   const codeInputs = await findCodeInputs(page);
   if (code && codeInputs) {
     console.log('Código recebido; digitando.');
@@ -166,9 +171,6 @@ async function loginWithEmailCode(page, submit, email, gmailAppPassword) {
     }
     const confirm = page.getByRole('button', { name: /continuar|confirmar|verificar|entrar|acessar|enviar|validar/i });
     if (await confirm.first().isVisible().catch(() => false)) await confirm.first().click().catch(() => {});
-  } else if (link) {
-    console.log('Link de acesso recebido; abrindo.');
-    await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   } else {
     await describePage(page);
     throw new RefreshError('login-falhou', `Recebi ${code ? 'o código' : 'o e-mail'}, mas não achei onde digitá-lo na página do Meu Pluggy.`);
@@ -234,12 +236,16 @@ async function waitForAccessEmail(user, pass, since) {
 }
 
 function extractAccess(mail) {
-  const text = `${mail.subject || ''}\n${mail.text || ''}`;
-  // Número solto (não parte de data, hora ou valor): prefere 6 dígitos.
+  // O Meu Pluggy manda um link mágico do Auth0 (my-pluggy.us.auth0.com/passwordless/verify_redirect…).
+  const urls = [
+    ...[...String(mail.html || '').matchAll(/href="([^"]+)"/g)].map((m) => m[1].replaceAll('&amp;', '&')),
+    ...(String(mail.text || '').match(/https:\/\/\S+/g) || []),
+  ];
+  const link = urls.find((u) => /^https:\/\/[^/]*pluggy[^/]*\//.test(u) && /passwordless|verify|token|magic|login|callback/i.test(u) && !/unsubscribe|descadastr/i.test(u));
+  // Número solto (não parte de link, data, hora ou valor): prefere 6 dígitos.
+  const text = `${mail.subject || ''}\n${mail.text || ''}`.replace(/https?:\/\/\S+/g, ' ');
   const loose = (n) => new RegExp(`(?<![\\d/.,:-]|[\\d][/.,:-])\\d{${n}}(?!\\d|[/.,:-]\\d)`);
   const code = (text.match(loose('6')) || text.match(loose('4,8')))?.[0];
-  const hrefs = [...String(mail.html || '').matchAll(/href="([^"]+)"/g)].map((m) => m[1].replaceAll('&amp;', '&'));
-  const link = hrefs.find((h) => /^https:\/\/[^/]*pluggy\.ai\//.test(h) && /token|code|magic|verify|login|auth|callback/i.test(h) && !/unsubscribe|descadastr/i.test(h));
   return { code, link };
 }
 
