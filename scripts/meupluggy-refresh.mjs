@@ -150,26 +150,55 @@ async function loginWithEmailCode(page, submit, email, gmailAppPassword) {
   console.log('E-mail de acesso pedido ao Meu Pluggy; aguardando no Gmail…');
   const { code, link } = await waitForAccessEmail(email, gmailAppPassword, requestedAt);
 
-  const codeInputs = page.locator(
-    'input[autocomplete="one-time-code"], input[inputmode="numeric"], input[name*="code" i], input[name*="otp" i], input[name*="token" i]'
-  );
-  const hasCodeField = await codeInputs.first().isVisible({ timeout: 5_000 }).catch(() => false);
-  if (code && hasCodeField) {
+  const codeInputs = await findCodeInputs(page);
+  if (code && codeInputs) {
     console.log('Código recebido; digitando.');
-    if ((await codeInputs.count()) > 1) {
-      // Uma caixa por dígito: o site passa para a próxima sozinho.
+    const boxes = await codeInputs.count();
+    if (boxes === code.length) {
+      // Uma caixa por dígito.
+      for (let i = 0; i < boxes; i++) await codeInputs.nth(i).fill(code[i]);
+    } else if (boxes > 1) {
+      // Caixas que se preenchem em sequência: o site passa para a próxima sozinho.
       await codeInputs.first().click();
       await page.keyboard.type(code, { delay: 80 });
     } else {
       await codeInputs.first().fill(code);
     }
-    if (await submit.isVisible().catch(() => false)) await submit.click().catch(() => {});
+    const confirm = page.getByRole('button', { name: /continuar|confirmar|verificar|entrar|acessar|enviar|validar/i });
+    if (await confirm.first().isVisible().catch(() => false)) await confirm.first().click().catch(() => {});
   } else if (link) {
     console.log('Link de acesso recebido; abrindo.');
     await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   } else {
-    throw new RefreshError('login-falhou', 'O e-mail do Meu Pluggy chegou, mas sem código nem link reconhecível.');
+    await describePage(page);
+    throw new RefreshError('login-falhou', `Recebi ${code ? 'o código' : 'o e-mail'}, mas não achei onde digitá-lo na página do Meu Pluggy.`);
   }
+}
+
+/**
+ * Campo(s) do código: primeiro pelos atributos usuais; senão, qualquer caixa de
+ * texto visível que não seja a do e-mail (o formulário troca o e-mail pelo código).
+ */
+async function findCodeInputs(page) {
+  const specific = page.locator(
+    'input[autocomplete="one-time-code"], input[inputmode="numeric"], input[name*="code" i], input[name*="otp" i], input[name*="token" i], input[name*="codigo" i], input[placeholder*="código" i], input[placeholder*="code" i]'
+  );
+  if (await specific.first().isVisible({ timeout: 10_000 }).catch(() => false)) return specific.filter({ visible: true });
+  const generic = page
+    .locator('input:not([type="hidden"]):not([type="email"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([name="email"]):not([name="username"])')
+    .filter({ visible: true });
+  return (await generic.count()) > 0 ? generic : undefined;
+}
+
+/** Mostra no log a estrutura da página (sem valores digitados), para ajustar os seletores. */
+async function describePage(page) {
+  const info = await page.evaluate(() => ({
+    url: location.origin + location.pathname,
+    titles: [...document.querySelectorAll('h1,h2,h3,label,p')].map((e) => e.innerText.trim()).filter(Boolean).slice(0, 12),
+    inputs: [...document.querySelectorAll('input')].map((e) => ({ type: e.type, name: e.name, id: e.id, autocomplete: e.autocomplete, inputmode: e.inputMode, placeholder: e.placeholder, maxlength: e.maxLength, visible: !!e.offsetParent })),
+    buttons: [...document.querySelectorAll('button')].map((e) => e.innerText.trim()).filter(Boolean),
+  })).catch(() => undefined);
+  console.log('Página do login (diagnóstico):', JSON.stringify(info));
 }
 
 /** Lê o Gmail (IMAP) até chegar um e-mail do Pluggy depois de `since`; devolve código e/ou link. */
