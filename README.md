@@ -60,6 +60,8 @@ O script `scripts/sync-pluggy.mjs` busca as transações a partir de 01/10/2026 
 
 > Transferências entre as suas próprias contas aparecem como saída em uma e entrada na outra.
 
+> Trocou de conta no Meu Pluggy ou reconectou um banco? Pode trocar o `PLUGGY_ITEM_IDS` sem medo: o sync reconhece o que já foi importado (mesma data, valor e cartão) e reaproveita o cartão e o saldo inicial existentes, sem duplicar.
+
 ### Configuração única
 
 1. Crie contas em [meu.pluggy.ai](https://meu.pluggy.ai) (conectar os bancos) e em [dashboard.pluggy.ai](https://dashboard.pluggy.ai) (credenciais da aplicação), e vincule o conector **MeuPluggy** à aplicação.
