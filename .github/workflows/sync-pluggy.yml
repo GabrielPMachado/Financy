@@ -102,6 +102,7 @@ jobs:
           MEUPLUGGY_STORAGE_STATE: ${{ secrets.MEUPLUGGY_STORAGE_STATE }}
           MEUPLUGGY_EMAIL: ${{ secrets.MEUPLUGGY_EMAIL }}
           MEUPLUGGY_PASSWORD: ${{ secrets.MEUPLUGGY_PASSWORD }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
 
       - name: Sincronizar
         id: sync
