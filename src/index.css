@@ -210,3 +210,48 @@ div:focus {
   -webkit-tap-highlight-color: transparent !important;
 }
 
+
+/* Efeito "vidro" (estilo Liquid Glass) pras barras e botões flutuantes.
+   O Liquid Glass nativo (expo-glass-effect) só existe no iOS 26+ e em apps
+   Expo; aqui é tudo WebView, então simulamos com backdrop-filter + brilho
+   na borda. Onde o WebView não suporta blur, cai num fundo quase opaco. */
+@utility glass {
+  background-color: rgb(255 255 255 / 0.92);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.7),
+    inset 0 -1px 0 rgb(255 255 255 / 0.15),
+    0 8px 24px -6px rgb(15 23 42 / 0.18);
+
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: rgb(255 255 255 / 0.45);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  &:where(.dark, .dark *) {
+    background-color: rgb(15 23 42 / 0.92);
+    border-color: rgb(255 255 255 / 0.1);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 -1px 0 rgb(255 255 255 / 0.04),
+      0 8px 24px -6px rgb(0 0 0 / 0.5);
+
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      background-color: rgb(15 23 42 / 0.5);
+    }
+  }
+}
+
+/* Variante mais "cheia" pra item ativo dentro de uma barra de vidro. */
+@utility glass-strong {
+  background-color: rgb(255 255 255 / 0.85);
+  border: 1px solid rgb(255 255 255 / 0.8);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 2px 8px -2px rgb(15 23 42 / 0.15);
+
+  &:where(.dark, .dark *) {
+    background-color: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.14);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.15), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+  }
+}

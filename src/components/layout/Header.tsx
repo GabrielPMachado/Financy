@@ -226,7 +226,7 @@ const Header = ({
 
         <div className="flex items-center gap-2 shrink-0">
           {/* Mês (pill compacta) */}
-          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full shadow-sm">
+          <div className="flex items-center glass rounded-full">
             <button
               type="button"
               onClick={() => {
@@ -302,7 +302,7 @@ const Header = ({
               type="button"
               onClick={() => onSyncNow()}
               disabled={isSyncing}
-              className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center shadow-md transition active:scale-95 shrink-0 disabled:opacity-70"
+              className="w-9 h-9 rounded-full glass text-slate-700 dark:text-slate-200 flex items-center justify-center transition active:scale-95 shrink-0 disabled:opacity-70"
               aria-label="Sincronizar bancos agora"
               title="Sincronizar bancos agora"
             >
@@ -315,7 +315,7 @@ const Header = ({
             <button
               type="button"
               onClick={onOpenNewTransaction}
-              className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-white shadow-md flex items-center justify-center shadow-sm transition active:scale-95 shrink-0"
+              className="w-9 h-9 rounded-full glass text-slate-900 dark:text-white flex items-center justify-center transition active:scale-95 shrink-0"
               title="Nova transação"
             >
               <Plus className="w-4 h-4" />
@@ -480,7 +480,7 @@ const Header = ({
             <button
               type="button"
               onClick={onSeeDetails}
-              className="absolute left-1/2 -bottom-3 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 text-[11px] font-semibold shadow-md active:scale-95 transition"
+              className="absolute left-1/2 -bottom-3 -translate-x-1/2 px-4 py-1.5 rounded-full glass text-slate-600 dark:text-slate-300 text-[11px] font-semibold active:scale-95 transition"
             >
               Ver detalhes
             </button>
