@@ -1449,7 +1449,7 @@ export default function App() {
           em <main> (activeView), em vez de só abrir modal/rolar a página. */}
       <nav
         aria-label="Navegação principal"
-        className="fixed bottom-3 inset-x-4 z-40 max-w-md mx-auto rounded-full bg-slate-200/80 dark:bg-slate-900/90 backdrop-blur-xl shadow-lg shadow-black/10 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
+        className="fixed bottom-3 inset-x-4 z-40 max-w-md mx-auto rounded-full glass p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
       >
         <div className="flex items-center justify-between gap-1">
           {[
@@ -1474,8 +1474,8 @@ export default function App() {
                 }}
                 className={`relative flex items-center justify-center gap-1.5 h-11 rounded-full text-xs font-semibold transition active:scale-95 ${
                   isActive
-                    ? 'flex-[1.4] bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                    : 'flex-1 text-slate-500 dark:text-slate-400'
+                    ? 'flex-[1.4] glass-strong text-slate-900 dark:text-white'
+                    : 'flex-1 border border-transparent text-slate-600 dark:text-slate-400'
                 }`}
               >
                 <TabIcon className="w-[18px] h-[18px]" />
