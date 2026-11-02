@@ -1450,7 +1450,7 @@ export default function App() {
           em <main> (activeView), em vez de só abrir modal/rolar a página. */}
       <nav
         aria-label="Navegação principal"
-        className="fixed bottom-3 inset-x-4 z-40 max-w-md mx-auto rounded-full glass p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
+        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] inset-x-4 z-40 max-w-md mx-auto rounded-full glass p-1.5"
       >
         <div className="flex items-center justify-between gap-1">
           {[
