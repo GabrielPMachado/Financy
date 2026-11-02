@@ -127,10 +127,68 @@ function pickCategory(pluggyCategory, isIncome) {
   return hit ? hit[1] : 'Outras Despesas';
 }
 
+// --- Transferências entre contas próprias ------------------------------------
+// Dinheiro que só mudou de banco (ex: Nubank -> Mercado Pago) não é receita nem
+// despesa. A categoria abaixo é a mesma de src/lib/quickSummary.ts, que o app
+// usa para tirar esses lançamentos dos totais.
+
+const TRANSFER_CATEGORY = 'Transferência entre contas';
+const TRANSFER_MAX_DAYS = 3;
+const SAME_OWNER_CATEGORY = /same (person|owner)|mesma titularidade|entre contas pr[oó]prias/i;
+
+const docOf = (party) => String(party?.documentNumber?.value || '').replace(/\D/g, '');
+
+/** true = pagador e recebedor são a mesma pessoa; false = pessoas diferentes; null = não dá pra saber. */
+function sameOwnerByDocument(tx) {
+  const payer = docOf(tx.paymentData?.payer);
+  const receiver = docOf(tx.paymentData?.receiver);
+  if (!payer || !receiver) return null;
+  return payer === receiver;
+}
+
+const dayNumber = (date) => Math.round(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
+
+/**
+ * Devolve os ids (Pluggy) das transações que são transferências entre contas
+ * próprias. `entries` = [{ tx, accountId }] só de contas correntes/poupança.
+ *  1. A Pluggy/banco já diz: categoria de mesma titularidade ou CPF do pagador = recebedor.
+ *  2. Par saída/entrada de mesmo valor em contas diferentes, com até 3 dias de
+ *     diferença (o mais próximo primeiro) — desde que o CPF não mostre outra pessoa.
+ */
+function findInternalTransfers(entries) {
+  const ids = new Set();
+  const candidates = [];
+  entries.forEach((e) => {
+    const same = sameOwnerByDocument(e.tx);
+    if (same === true || SAME_OWNER_CATEGORY.test(String(e.tx.category || ''))) ids.add(e.tx.id);
+    else if (same === null && !CARD_PAYMENT_PATTERN.test(String(e.tx.description || ''))) candidates.push(e);
+  });
+  const cents = (tx) => Math.round(Math.abs(Number(tx.amount)) * 100);
+  const day = (tx) => dayNumber(toBrazilDateTime(tx.date).date);
+  const outs = candidates.filter((e) => e.tx.type === 'DEBIT');
+  const ins = candidates.filter((e) => e.tx.type === 'CREDIT');
+  const pairs = [];
+  outs.forEach((o) => ins.forEach((i) => {
+    if (o.accountId === i.accountId || cents(o.tx) !== cents(i.tx)) return;
+    const gap = Math.abs(day(o.tx) - day(i.tx));
+    if (gap <= TRANSFER_MAX_DAYS) pairs.push({ o, i, gap });
+  }));
+  pairs.sort((a, b) => a.gap - b.gap);
+  const used = new Set();
+  pairs.forEach(({ o, i }) => {
+    if (used.has(o.tx.id) || used.has(i.tx.id)) return;
+    used.add(o.tx.id);
+    used.add(i.tx.id);
+    ids.add(o.tx.id);
+    ids.add(i.tx.id);
+  });
+  return ids;
+}
+
 const CARD_PAYMENT_PATTERN = /pagamento.*fatura|fatura.*cart[aã]o/i;
 
 /** Retorna null para o que não deve virar lançamento (pagamentos/estornos no cartão). */
-function toFinancyTransaction(tx, account, cardIdForPayments) {
+function toFinancyTransaction(tx, account, cardIdForPayments, isInternal = false) {
   const isCreditCard = account.type === 'CREDIT';
   // No cartão, compras vêm como DEBIT; CREDIT são pagamentos de fatura/estornos,
   // que já aparecem como saída na conta corrente — ignorar evita contar em dobro.
@@ -145,6 +203,11 @@ function toFinancyTransaction(tx, account, cardIdForPayments) {
     source: 'pluggy',
   };
   if (isCreditCard) base.cardId = `pluggy-${account.id}`;
+  if (isInternal) {
+    base.category = TRANSFER_CATEGORY;
+    base.internalTransfer = true;
+    return { id: `pluggy-${tx.id}`, collection: isIncome ? 'receitas' : 'despesas', data: base };
+  }
   // Saída da conta pagando a fatura: segue a regra do app (reduz o "usado" do cartão).
   if (!isCreditCard && !isIncome && cardIdForPayments && CARD_PAYMENT_PATTERN.test(base.description)) {
     base.category = 'Pagamento de Fatura';
@@ -249,6 +312,7 @@ async function openFirestore() {
 
 /** Grava só o que ainda não existe (não sobrescreve edições feitas no app). */
 let backfilled = 0;
+let markedTransfers = 0;
 
 async function createMissing(db, colRef, items) {
   if (items.length === 0) return 0;
@@ -258,10 +322,16 @@ async function createMissing(db, colRef, items) {
   let created = 0;
   let touched = false;
   snaps.forEach((snap, idx) => {
-    const { time, date, source } = items[idx].data;
+    const { time, date, source, internalTransfer, category } = items[idx].data;
     if (!snap.exists) {
       batch.set(refs[idx], items[idx].data);
       created++;
+      touched = true;
+    } else if (internalTransfer && snap.get('internalTransfer') === undefined) {
+      // Importado antes desta regra: marca uma vez só. Se depois você trocar a
+      // categoria no app, a sincronização não volta a mexer.
+      batch.update(refs[idx], { category, internalTransfer: true, ...(time && !snap.get('time') ? { date, time } : {}) });
+      markedTransfers++;
       touched = true;
     } else if (source === 'pluggy' && time && !snap.get('time')) {
       // Lançamento importado antes de existir horário: completa só data e hora
@@ -306,6 +376,7 @@ async function main() {
   const cards = [];
   const openings = [];
   const outsideWindowIds = [];
+  const pending = []; // { tx, account, cardIdForPayments } — convertidos depois de achar as transferências
 
   for (const itemId of itemIds) {
     const item = await pluggy(`/items/${itemId}`, apiKey);
@@ -335,8 +406,7 @@ async function main() {
         } else {
           net += tx.type === 'CREDIT' ? amount : -amount;
         }
-        const converted = toFinancyTransaction(tx, account, itemCard ? `pluggy-${itemCard.id}` : undefined);
-        if (converted) transactions.push(converted);
+        pending.push({ tx, account, cardIdForPayments: itemCard ? `pluggy-${itemCard.id}` : undefined });
       });
       const opening = account.type === 'CREDIT'
         ? openingCardEntry(account, purchases, payments)
@@ -344,6 +414,14 @@ async function main() {
       if (opening) openings.push(opening);
     }
   }
+
+  const internalIds = findInternalTransfers(
+    pending.filter((p) => p.account.type !== 'CREDIT').map((p) => ({ tx: p.tx, accountId: p.account.id })));
+  pending.forEach(({ tx, account, cardIdForPayments }) => {
+    const converted = toFinancyTransaction(tx, account, cardIdForPayments, internalIds.has(tx.id));
+    if (converted) transactions.push(converted);
+  });
+  console.log(`Transferências entre contas próprias: ${internalIds.size}`);
 
   const expenses = transactions.filter((t) => t.collection === 'despesas').length;
   console.log(`Saldos de abertura calculados: ${openings.length}`);
@@ -380,6 +458,7 @@ async function writeToFirestore(openings, outsideWindowIds, cards, transactions)
   const createdIncome = await createMissing(
     db, userRef.collection('receitas'), transactions.filter((t) => t.collection === 'receitas'));
   if (backfilled > 0) console.log(`Horário completado em ${backfilled} lançamento(s) antigo(s).`);
+  if (markedTransfers > 0) console.log(`Marcado como transferência entre contas: ${markedTransfers} lançamento(s) antigo(s).`);
   console.log(`Gravado: ${createdExpenses} despesa(s), ${createdIncome} receita(s), ${createdCards} cartão(ões) novos.`);
   await writeQuickSummary(userRef);
   writeNotifyData(createdExpenses, createdIncome);

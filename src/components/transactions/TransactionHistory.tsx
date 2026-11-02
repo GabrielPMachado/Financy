@@ -3,6 +3,7 @@ import { Search, Filter, ArrowUpRight, ArrowDownRight, Tag, Calendar, Trash2, Ed
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryItem } from '../../App';
 import { compareNewestFirst, formatDateTime } from '../../lib/transactions';
+import { isInternalTransfer } from '../../lib/quickSummary';
 
 export interface Transaction {
   id: string;
@@ -212,6 +213,7 @@ export default function TransactionHistory({
       let totalInvestment = 0;
 
       txs.forEach(t => {
+        if (isInternalTransfer(t)) return; // transferência entre contas próprias
         if (t.type === 'income') totalIncome += t.amount;
         else if (t.type === 'expense') totalExpense += t.amount;
         else if (t.type === 'investment' || t.category.toLowerCase().includes('invest')) totalInvestment += t.amount;
