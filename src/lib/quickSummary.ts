@@ -9,6 +9,15 @@
  * Sem imports e só com sintaxe que o Node entende ao apagar tipos: o script
  * scripts/sync-pluggy.mjs importa este arquivo direto.
  */
+/** Categoria das transferências entre as próprias contas (marcada pela sincronização). */
+export const TRANSFER_CATEGORY = 'Transferência entre contas';
+
+/**
+ * Transferência entre contas próprias: dinheiro que só mudou de banco. Não conta
+ * como receita nem despesa nos totais (no saldo, a saída e a entrada se anulam).
+ */
+export const isInternalTransfer = (t: { category?: string }): boolean => t.category === TRANSFER_CATEGORY;
+
 export interface SummaryTransaction {
   description: string;
   amount: number;
@@ -336,7 +345,7 @@ export function buildQuickSummary(
     return acc;
   }, 0);
 
-  const inMonth = transactions.filter((t) => t.date && t.date.startsWith(month));
+  const inMonth = transactions.filter((t) => t.date && t.date.startsWith(month) && !isInternalTransfer(t));
   const entradasMes = inMonth.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
   const gastosMes = inMonth.filter((t) => t.type === 'expense' && !t.cardId).reduce((acc, t) => acc + t.amount, 0);
 

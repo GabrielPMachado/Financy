@@ -25,7 +25,7 @@ import ManageCategoriesModal from './components/categories/ManageCategoriesModal
 import SummaryCards from './components/dashboard/SummaryCards';
 import TransactionModal, { TransactionFormData } from './components/transactions/TransactionModal';
 import QuickGlance from './components/dashboard/QuickGlance';
-import { buildQuickSummary } from './lib/quickSummary';
+import { buildQuickSummary, isInternalTransfer } from './lib/quickSummary';
 import { processQuickJobs, saveQuickSummary, subscribeQuickJobs } from './lib/quickShortcuts';
 import TransactionHistory from './components/transactions/TransactionHistory';
 import Header from './components/layout/Header';
@@ -973,15 +973,16 @@ export default function App() {
   }, [transactions, monthFilter]);
 
   // Cálculos consolidados do mês selecionado
+  // Transferências entre contas próprias não são receita nem despesa.
   const totalIncome = monthTransactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'income' && !isInternalTransfer(t))
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   // Despesas vinculadas a um cartão (cardId) NÃO entram no total — elas só afetam
   // o saldo quando a fatura daquele cartão é paga (ver handlePayCard). Até lá,
   // contam apenas como "limite usado" dentro do painel do cartão.
   const totalExpense = monthTransactions
-    .filter(t => t.type === 'expense' && !t.cardId)
+    .filter(t => t.type === 'expense' && !t.cardId && !isInternalTransfer(t))
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   const totalInvestments = monthTransactions
@@ -1021,7 +1022,7 @@ export default function App() {
   const previousExpense = monthFilter === 'all'
     ? null
     : transactions
-        .filter(t => t.type === 'expense' && !t.cardId && t.date && t.date.startsWith(shiftMonth(monthFilter, -1)))
+        .filter(t => t.type === 'expense' && !t.cardId && !isInternalTransfer(t) && t.date && t.date.startsWith(shiftMonth(monthFilter, -1)))
         .reduce((acc, curr) => acc + curr.amount, 0);
 
   const previousMonthBalance = monthFilter === 'all'
@@ -1031,7 +1032,7 @@ export default function App() {
   // Dados para gráficos de Pizza
   const incomeData = useMemo(() => {
     const map = new Map<string, number>();
-    monthTransactions.filter(t => t.type === 'income').forEach(t => {
+    monthTransactions.filter(t => t.type === 'income' && !isInternalTransfer(t)).forEach(t => {
       map.set(t.category, (map.get(t.category) || 0) + t.amount);
     });
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
@@ -1039,7 +1040,7 @@ export default function App() {
 
   const expenseData = useMemo(() => {
     const map = new Map<string, number>();
-    monthTransactions.filter(t => t.type === 'expense' && !t.cardId).forEach(t => {
+    monthTransactions.filter(t => t.type === 'expense' && !t.cardId && !isInternalTransfer(t)).forEach(t => {
       map.set(t.category, (map.get(t.category) || 0) + t.amount);
     });
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
@@ -1084,7 +1085,7 @@ export default function App() {
 
   // Receitas recebidas que ainda podem ser vinculadas a um freelance.
   const pixCandidates = transactions
-    .filter(t => t.type === 'income' && !t.linkedFreelance && !t.description.startsWith('Saldo inicial'))
+    .filter(t => t.type === 'income' && !t.linkedFreelance && !isInternalTransfer(t) && !t.description.startsWith('Saldo inicial'))
     .sort(compareNewestFirst)
     .slice(0, 40);
 
