@@ -24,12 +24,13 @@ function starPath(cx: number, cy: number, R: number) {
   return d + 'Z';
 }
 
-/** dois chevrons ( >> ) apontando para fora, perto da borda */
-function chevrons(R: number) {
-  const w = R * 0.13; // meia largura
-  const h = R * 0.085; // altura de cada chevron
-  const c = (tipY: number) => `M${R - w},${tipY + h} L${R},${tipY} L${R + w},${tipY + h}`;
-  return `${c(R - R * 0.76)} ${c(R - R * 0.6)}`;
+/** ponta de seta cheia ( ➤ ) apontando para fora, perto da borda */
+function pointer(R: number) {
+  const tip = R - R * 0.8;
+  const back = tip + R * 0.24; // cantos de trás
+  const notch = tip + R * 0.16; // entalhe no meio da base
+  const hw = R * 0.13;
+  return `M${R},${tip} L${R + hw},${back} L${R},${notch} L${R - hw},${back} Z`;
 }
 
 function vibrate(ms: number) {
@@ -169,9 +170,9 @@ export default function Knob({ value, onChange, color, size = 230 }: { value: nu
         ))}
         <circle cx={R} cy={R} r={R * 0.84} fill={`url(#body${id})`} />
         <circle cx={R} cy={R} r={R * 0.84} fill="none" stroke="#000" strokeOpacity={0.35} strokeWidth={1} />
-        {/* indicador >> na cor escolhida */}
-            <path d={chevrons(R)} fill="none" stroke={color} strokeOpacity={0.3} strokeWidth={R * 0.11} strokeLinecap="round" strokeLinejoin="round" />
-            <path d={chevrons(R)} fill="none" stroke={color} strokeWidth={R * 0.055} strokeLinecap="round" strokeLinejoin="round" />
+        {/* indicador ➤ na cor escolhida */}
+            <path d={pointer(R)} fill={color} fillOpacity={0.3} stroke={color} strokeOpacity={0.3} strokeWidth={R * 0.07} strokeLinejoin="round" />
+            <path d={pointer(R)} fill={color} stroke={color} strokeWidth={R * 0.02} strokeLinejoin="round" />
       </svg>
     </div>
   );
