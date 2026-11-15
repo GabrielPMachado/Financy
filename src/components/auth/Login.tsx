@@ -64,7 +64,7 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center overflow-y-auto px-4 py-8"
+      className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 ambient text-slate-900 dark:text-slate-100 flex items-center justify-center overflow-y-auto px-4 py-8"
       style={{
         paddingTop: 'max(2rem, env(safe-area-inset-top))',
         paddingBottom: 'max(2rem, env(safe-area-inset-bottom))',

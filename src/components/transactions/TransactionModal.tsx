@@ -452,7 +452,7 @@ export default function TransactionModal({
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 text-lg font-bold">
+                            <div className="icon-tile w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 text-lg font-bold">
                               💸
                             </div>
                             <div>
@@ -473,7 +473,7 @@ export default function TransactionModal({
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-lg font-bold">
+                            <div className="icon-tile w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-lg font-bold">
                               💰
                             </div>
                             <div>
@@ -494,7 +494,7 @@ export default function TransactionModal({
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-lg font-bold">
+                            <div className="icon-tile w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-lg font-bold">
                               📈
                             </div>
                             <div>

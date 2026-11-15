@@ -876,7 +876,7 @@ export const CreditCardEdgePanel: React.FC<CreditCardEdgePanelProps> = ({
               {/* Cabeçalho do Painel com Ações de Gerenciamento */}
               <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <div className="icon-tile p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     <CreditCard className="w-5 h-5" />
                   </div>
                   <div>
