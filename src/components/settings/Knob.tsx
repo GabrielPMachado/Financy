@@ -24,6 +24,16 @@ function starPath(cx: number, cy: number, R: number) {
   return d + 'Z';
 }
 
+/** seta apontando para fora: ponta perto da borda, haste em direção ao centro */
+function arrowPath(R: number) {
+  const tip = R - R * 0.8;
+  const base = R - R * 0.5;
+  const stemEnd = R - R * 0.2;
+  const hw = R * 0.15;
+  const sw = R * 0.055;
+  return `M${R},${tip} L${R + hw},${base} L${R + sw},${base} L${R + sw},${stemEnd} Q${R},${stemEnd + sw * 1.4} ${R - sw},${stemEnd} L${R - sw},${base} L${R - hw},${base} Z`;
+}
+
 function vibrate(ms: number) {
   try {
     navigator.vibrate?.(ms);
@@ -161,8 +171,10 @@ export default function Knob({ value, onChange, color, size = 230 }: { value: nu
         ))}
         <circle cx={R} cy={R} r={R * 0.84} fill={`url(#body${id})`} />
         <circle cx={R} cy={R} r={R * 0.84} fill="none" stroke="#000" strokeOpacity={0.35} strokeWidth={1} />
-        <circle cx={R} cy={R - R * 0.62} r={R * 0.11} fill={color} />
-        <circle cx={R - R * 0.03} cy={R - R * 0.645} r={R * 0.04} fill="#FFFFFF" fillOpacity={0.45} />
+        {/* seta indicadora na cor escolhida */}
+        <path d={arrowPath(R)} fill={color} fillOpacity={0.28} stroke={color} strokeOpacity={0.28} strokeWidth={R * 0.09} strokeLinejoin="round" />
+        <path d={arrowPath(R)} fill={color} />
+        <path d={`M${R},${R - R * 0.74} L${R - R * 0.05},${R - R * 0.58}`} stroke="#FFFFFF" strokeOpacity={0.45} strokeWidth={R * 0.035} strokeLinecap="round" />
       </svg>
     </div>
   );
