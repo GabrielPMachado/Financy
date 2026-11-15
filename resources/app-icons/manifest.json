@@ -1,0 +1,152 @@
+[
+ {
+  "name": "GrafiteCarmim",
+  "style": "grafite",
+  "color": "Carmim",
+  "hex": "#F2415A"
+ },
+ {
+  "name": "GrafiteAmbar",
+  "style": "grafite",
+  "color": "Ambar",
+  "hex": "#F5A524"
+ },
+ {
+  "name": "GrafiteAzul",
+  "style": "grafite",
+  "color": "Azul",
+  "hex": "#4C8DFF"
+ },
+ {
+  "name": "GrafiteMenta",
+  "style": "grafite",
+  "color": "Menta",
+  "hex": "#3DD6B0"
+ },
+ {
+  "name": "GrafiteLima",
+  "style": "grafite",
+  "color": "Lima",
+  "hex": "#A3E635"
+ },
+ {
+  "name": "GrafiteVerde",
+  "style": "grafite",
+  "color": "Verde",
+  "hex": "#10B981"
+ },
+ {
+  "name": "CorCarmim",
+  "style": "cor",
+  "color": "Carmim",
+  "hex": "#F2415A"
+ },
+ {
+  "name": "CorAmbar",
+  "style": "cor",
+  "color": "Ambar",
+  "hex": "#F5A524"
+ },
+ {
+  "name": "CorAzul",
+  "style": "cor",
+  "color": "Azul",
+  "hex": "#4C8DFF"
+ },
+ {
+  "name": "CorMenta",
+  "style": "cor",
+  "color": "Menta",
+  "hex": "#3DD6B0"
+ },
+ {
+  "name": "CorLima",
+  "style": "cor",
+  "color": "Lima",
+  "hex": "#A3E635"
+ },
+ {
+  "name": "CorVerde",
+  "style": "cor",
+  "color": "Verde",
+  "hex": "#10B981"
+ },
+ {
+  "name": "ClaroCarmim",
+  "style": "claro",
+  "color": "Carmim",
+  "hex": "#F2415A"
+ },
+ {
+  "name": "ClaroAmbar",
+  "style": "claro",
+  "color": "Ambar",
+  "hex": "#F5A524"
+ },
+ {
+  "name": "ClaroAzul",
+  "style": "claro",
+  "color": "Azul",
+  "hex": "#4C8DFF"
+ },
+ {
+  "name": "ClaroMenta",
+  "style": "claro",
+  "color": "Menta",
+  "hex": "#3DD6B0"
+ },
+ {
+  "name": "ClaroLima",
+  "style": "claro",
+  "color": "Lima",
+  "hex": "#A3E635"
+ },
+ {
+  "name": "ClaroVerde",
+  "style": "claro",
+  "color": "Verde",
+  "hex": "#10B981"
+ },
+ {
+  "name": "ContornoCarmim",
+  "style": "contorno",
+  "color": "Carmim",
+  "hex": "#F2415A"
+ },
+ {
+  "name": "ContornoAmbar",
+  "style": "contorno",
+  "color": "Ambar",
+  "hex": "#F5A524"
+ },
+ {
+  "name": "ContornoAzul",
+  "style": "contorno",
+  "color": "Azul",
+  "hex": "#4C8DFF"
+ },
+ {
+  "name": "ContornoMenta",
+  "style": "contorno",
+  "color": "Menta",
+  "hex": "#3DD6B0"
+ },
+ {
+  "name": "ContornoLima",
+  "style": "contorno",
+  "color": "Lima",
+  "hex": "#A3E635"
+ },
+ {
+  "name": "ContornoVerde",
+  "style": "contorno",
+  "color": "Verde",
+  "hex": "#10B981"
+ },
+ {
+  "name": "Mono",
+  "style": "mono",
+  "color": null,
+  "hex": null
+ }
+]

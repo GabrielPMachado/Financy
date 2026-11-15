@@ -11,7 +11,7 @@ import { doc, onSnapshot, setDoc, type Unsubscribe } from 'firebase/firestore';
 import { useSyncExternalStore } from 'react';
 import { db } from './firebase';
 
-export type IconStyle = 'suave' | 'solido' | 'contorno' | 'simples';
+export type IconStyle = 'suave' | 'solido' | 'contorno' | 'vidro' | 'gradiente' | 'simples';
 export type IconTone = 'colorido' | 'destaque' | 'neutro';
 
 export interface Look {
@@ -23,6 +23,10 @@ export interface Look {
   cores: string[];
   /** seguir o que vier do Órbita */
   sincronizar: boolean;
+  /** ícone do app (só neste app, não vai para o Órbita) */
+  iconeApp: 'grafite' | 'cor' | 'claro' | 'contorno' | 'mono';
+  corIcone: 'Verde' | 'Carmim' | 'Ambar' | 'Azul' | 'Menta' | 'Lima';
+  iconeSegue: boolean;
   atualizadoEm: string;
 }
 
@@ -36,7 +40,7 @@ export const PRESETS: Array<{ nome: string; cor: string }> = [
   { nome: 'Menta', cor: '#3DD6B0' },
   { nome: 'Lima', cor: '#A3E635' },
 ];
-export const ICON_STYLES: Record<IconStyle, string> = { suave: 'Suave', solido: 'Sólido', contorno: 'Contorno', simples: 'Só ícone' };
+export const ICON_STYLES: Record<IconStyle, string> = { suave: 'Suave', solido: 'Sólido', contorno: 'Contorno', vidro: 'Vidro', gradiente: 'Gradiente', simples: 'Só ícone' };
 export const ICON_TONES: Record<IconTone, string> = { colorido: 'Coloridos', destaque: 'Destaque', neutro: 'Neutros' };
 
 const KEY = 'financy.aparencia';
@@ -47,6 +51,9 @@ const DEFAULT: Look = {
   tomIcones: 'colorido',
   cores: [],
   sincronizar: true,
+  iconeApp: 'grafite',
+  corIcone: 'Verde',
+  iconeSegue: true,
   atualizadoEm: new Date(0).toISOString(),
 };
 
@@ -107,7 +114,14 @@ function paint(l: Look) {
 }
 
 function commit(next: Look, fromRemote = false) {
+  const prev = look;
   look = next;
+  // ícone do app acompanha a cor (escolhida aqui ou vinda do Órbita)
+  if (next.iconeSegue && (next.cor !== prev.cor || next.iconeApp !== prev.iconeApp || next.iconeSegue !== prev.iconeSegue)) {
+    import('./appIcon').then((m) => m.setAppIcon(next.iconeApp, m.nearestIconColor(next.cor))).catch(() => {});
+  } else if (!next.iconeSegue && (next.corIcone !== prev.corIcone || next.iconeApp !== prev.iconeApp || next.iconeSegue !== prev.iconeSegue)) {
+    import('./appIcon').then((m) => m.setAppIcon(next.iconeApp, next.corIcone)).catch(() => {});
+  }
   try {
     localStorage.setItem(KEY, JSON.stringify(look));
   } catch {
@@ -116,7 +130,7 @@ function commit(next: Look, fromRemote = false) {
   paint(look);
   listeners.forEach((f) => f());
   if (!fromRemote && uidForSync) {
-    const { sincronizar: _s, ...shared } = look;
+    const { sincronizar: _s, iconeApp: _i, corIcone: _c, iconeSegue: _g, ...shared } = look;
     setDoc(doc(db, 'users', uidForSync, 'aparencia', 'compartilhada'), { ...shared, origem: 'financy' }, { merge: true }).catch((err) =>
       console.error('Erro ao salvar a aparência:', err),
     );

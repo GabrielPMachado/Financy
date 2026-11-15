@@ -56,6 +56,35 @@ jobs:
             --splashBackgroundColor '#08090B' --splashBackgroundColorDark '#08090B' || echo "ícones: usando o padrão"
           npx cap sync ios
 
+      - name: Ícones do app (principal + estilos alternativos)
+        run: |
+          XC=ios/App/App/Assets.xcassets
+          SRC=resources/app-icons
+          # principal, com as versões escura e tingida do iOS 18
+          rm -rf "$XC/AppIcon.appiconset" && mkdir -p "$XC/AppIcon.appiconset"
+          cp "$SRC/primary.png" "$XC/AppIcon.appiconset/icon.png"
+          cp "$SRC/primary-dark.png" "$XC/AppIcon.appiconset/icon-dark.png"
+          cp "$SRC/primary-tinted.png" "$XC/AppIcon.appiconset/icon-tinted.png"
+          cat > "$XC/AppIcon.appiconset/Contents.json" <<'JSON'
+          {
+            "images": [
+              { "filename": "icon.png", "idiom": "universal", "platform": "ios", "size": "1024x1024" },
+              { "appearances": [{ "appearance": "luminosity", "value": "dark" }], "filename": "icon-dark.png", "idiom": "universal", "platform": "ios", "size": "1024x1024" },
+              { "appearances": [{ "appearance": "luminosity", "value": "tinted" }], "filename": "icon-tinted.png", "idiom": "universal", "platform": "ios", "size": "1024x1024" }
+            ],
+            "info": { "author": "xcode", "version": 1 }
+          }
+          JSON
+          # um appiconset por estilo × cor (o nome é o que o app pede na troca)
+          for F in "$SRC"/*.png; do
+            N=$(basename "$F" .png)
+            case "$N" in primary*|GrafiteVerde) continue;; esac
+            mkdir -p "$XC/$N.appiconset"
+            cp "$F" "$XC/$N.appiconset/icon.png"
+            printf '{"images":[{"filename":"icon.png","idiom":"universal","platform":"ios","size":"1024x1024"}],"info":{"author":"xcode","version":1}}' > "$XC/$N.appiconset/Contents.json"
+          done
+          ls "$XC"
+
       - name: Esquemas de link (financy:// e abrir o Órbita)
         run: |
           PL=ios/App/App/Info.plist
@@ -83,8 +112,17 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS=YES \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             -quiet
+
+      - name: Conferir ícones alternativos
+        run: |
+          APP=build/Build/Products/Release-iphoneos/App.app
+          N=$(plutil -extract CFBundleIcons.CFBundleAlternateIcons xml1 -o - "$APP/Info.plist" | grep -c '<key>CFBundleIconName</key>' || true)
+          echo "Ícones alternativos no app: $N"
+          [ "$N" -ge 20 ] || { echo "::error::Os ícones alternativos não entraram no app"; exit 1; }
+          echo "- Ícones alternativos: $N" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Empacotar .ipa
         run: |

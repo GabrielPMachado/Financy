@@ -33,6 +33,7 @@ import {
   isIOS,
   listenDeepLinks,
   matchHints,
+  connectOrbita,
   openOrbita,
   parseAction,
   subscribeApplePayHints,
@@ -1188,16 +1189,30 @@ export default function App() {
   );
   // Mesmas ações chegam do Órbita pelo app nativo (financy://resumo, financy://novo?...).
   const runAction = (a: FinancyAction) => {
+    if (a.action === 'conectar-orbita') {
+      // o Órbita pediu a conexão: devolve a chave direto para ele
+      if (authUser) connectOrbita(authUser.refreshToken);
+      else pendingOrbitaLink.current = true;
+      return;
+    }
     if (a.action === 'resumo') setGlanceOpen(true);
     else handleOpenNewTransaction(a.tipo ?? 'expense', { valor: a.valor, descricao: a.descricao, categoria: a.categoria, data: a.data });
   };
+  const pendingOrbitaLink = useRef(false);
+  useEffect(() => {
+    // pediu a conexão antes de entrar na conta: conecta assim que o login terminar
+    if (authUser && pendingOrbitaLink.current) {
+      pendingOrbitaLink.current = false;
+      connectOrbita(authUser.refreshToken);
+    }
+  }, [authUser]);
   const runActionRef = useRef(runAction);
   runActionRef.current = runAction;
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const a = parseAction(params);
     if (a) {
-      if (a.action === 'quick-add') runAction(a);
+      if (a.action !== 'resumo') runAction(a);
       ['action', 'tipo', 'valor', 'descricao', 'categoria', 'data'].forEach((k) => params.delete(k));
       const query = params.toString();
       window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
@@ -1265,7 +1280,6 @@ export default function App() {
           eyebrow={VIEW_TITLES[activeView]?.eyebrow}
           title={VIEW_TITLES[activeView]?.title}
           onSeeDetails={activeView === 'home' ? () => setActiveView('analise') : undefined}
-          onSyncNow={handleSyncNow}
           onOpenOrbita={isIOS ? () => openOrbita() : undefined}
           syncStatus={bankSync.state.status}
           syncMessage={bankSync.state.message}
@@ -1513,12 +1527,14 @@ export default function App() {
         aria-label="Navegação principal"
         className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] inset-x-4 z-40 max-w-md mx-auto rounded-full glass p-1.5"
       >
-        <div className="flex items-center justify-between gap-1">
+        {/* mesmo desenho do menu do Órbita: pílula única, ícone e nome lado a lado,
+            a aba ativa cresce numa pílula mais clara e o ícone dá um pulinho */}
+        <div className="flex items-center gap-1">
           {[
+            { key: 'home' as const, label: 'Início', icon: Home },
             { key: 'contas' as const, label: 'Contas', icon: Clock, badge: pendingSimulations.length },
-            { key: 'home' as const, label: 'Home', icon: Home },
             { key: 'analise' as const, label: 'Análise', icon: PieChart },
-            { key: 'config' as const, label: 'Config', icon: Settings },
+            { key: 'config' as const, label: 'Ajustes', icon: Settings },
           ].map((tab) => {
             const TabIcon = tab.icon;
             const isActive = activeView === tab.key;
@@ -1534,14 +1550,23 @@ export default function App() {
                     scrollToTop();
                   }
                 }}
-                className={`relative flex items-center justify-center gap-1.5 h-11 rounded-full text-xs font-semibold transition active:scale-95 ${
-                  isActive
-                    ? 'flex-[1.4] glass-strong text-slate-900 dark:text-white'
-                    : 'flex-1 border border-transparent text-slate-600 dark:text-slate-400'
-                }`}
+                style={{ flexGrow: isActive ? 1.25 : 1, flexBasis: 0, transition: 'flex-grow 0.35s cubic-bezier(.3,1.3,.5,1)' }}
+                className="relative min-w-0 flex items-center justify-center gap-1 h-11 px-0.5 rounded-full text-[11px] font-semibold active:scale-95 transition-transform"
               >
-                <TabIcon className="w-[18px] h-[18px]" />
-                <span>{tab.label}</span>
+                <span
+                  aria-hidden
+                  className={`absolute inset-0 rounded-full transition-all duration-300 ${
+                    isActive
+                      ? 'opacity-100 scale-100 bg-slate-900/[0.06] dark:bg-white/[0.12] border border-slate-900/10 dark:border-white/[0.14] dark:border-t-white/[0.22]'
+                      : 'opacity-0 scale-90 border border-transparent'
+                  }`}
+                />
+                <TabIcon
+                  key={isActive ? `${tab.key}-on` : tab.key}
+                  className={`relative w-[18px] h-[18px] shrink-0 ${isActive ? 'text-slate-900 dark:text-white tab-bounce' : 'text-slate-500 dark:text-slate-400'}`}
+                  strokeWidth={isActive ? 2.3 : 2}
+                />
+                <span className={`relative truncate ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>{tab.label}</span>
                 {!!tab.badge && !isActive && (
                   <span className="absolute top-1 right-2 bg-amber-500 text-white font-bold text-[9px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center">
                     {tab.badge}
