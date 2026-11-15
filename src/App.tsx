@@ -27,6 +27,7 @@ import TransactionModal, { TransactionFormData } from './components/transactions
 import QuickGlance from './components/dashboard/QuickGlance';
 import { buildQuickSummary, isInternalTransfer } from './lib/quickSummary';
 import { processQuickJobs, saveQuickSummary, subscribeQuickJobs } from './lib/quickShortcuts';
+import { subscribeSharedLook } from './lib/appearance';
 import {
   clearApplePayHints,
   isIOS,
@@ -477,6 +478,10 @@ export default function App() {
 
   // Órbita: compras do Apple Pay chegam com a categoria escolhida na hora. Quando a
   // mesma compra entra pelo Open Finance, a categoria é aplicada nela (sem duplicar).
+  useEffect(() => {
+    if (!authUser) return;
+    return subscribeSharedLook(authUser.uid);
+  }, [authUser]);
   const [applePayHints, setApplePayHints] = useState<ApplePayHint[]>([]);
   useEffect(() => {
     if (!authUser) return;

@@ -120,6 +120,7 @@ O app carrega o site publicado (`https://financy-2d.web.app`), então toda mudan
 
 - **Links:** `financy://resumo` abre o resumo; `financy://novo?tipo=expense&valor=12.50&descricao=Padaria&categoria=Alimentação&data=2026-11-14` abre o lançamento já preenchido (no site, os mesmos parâmetros funcionam com `?action=quick-add`). O botão de órbita no topo abre o Órbita (`orbita://`).
 - **Chave:** *Ajustes › Órbita › Copiar chave* e cole no Órbita (*Configurações › Financy*). O Órbita passa a mostrar o saldo do Financy (lido de `users/{uid}/resumo/atual`).
+- **Aparência compartilhada:** *Ajustes › Cor do app* tem as mesmas cores do Órbita (e as suas), a roda de intensidade (toque numa cor) e o estilo/cor dos ícones. Fica em `users/{uid}/aparencia/compartilhada`; quem mudou por último, aqui ou no Órbita, vale para os dois (dá para desligar em *Ajustes › Órbita*). Código em `src/lib/appearance.ts`.
 - **Compras do Apple Pay:** o Órbita grava cada compra com a categoria escolhida na hora em `users/{uid}/comprasApplePay`. Quando a mesma compra chega pelo Open Finance (mesmo valor, até 2 dias depois, horário mais próximo), o Financy aplica a categoria nela e apaga o aviso. Não cria lançamento, então nada é contado em dobro. Avisos sem par em 10 dias são descartados. Código em `src/lib/orbitaBridge.ts`.
 
 ## iPhone (PWA + "Tocar nas costas")

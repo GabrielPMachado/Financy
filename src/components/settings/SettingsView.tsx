@@ -3,6 +3,8 @@ import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { ThemePreference } from '../../lib/theme';
 import type { BankSyncState, SyncOptions } from '../../lib/githubSync';
 import { isIOS, openOrbita } from '../../lib/orbitaBridge';
+import { updateLook, useLook } from '../../lib/appearance';
+import AppearanceGroup from './AppearanceGroup';
 
 interface SettingsViewProps {
   userName?: string;
@@ -117,6 +119,7 @@ function ShortcutKeyGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortc
 
 function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey'>) {
   const [copied, setCopied] = useState(false);
+  const look = useLook();
   const copy = async () => {
     const key = getShortcutKey();
     if (!key) return;
@@ -133,6 +136,18 @@ function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey
         <span>Abrir o Órbita</span>
         <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
       </button>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={look.sincronizar}
+        onClick={() => updateLook({ sincronizar: !look.sincronizar })}
+        className={rowClass}
+      >
+        <span>Mesma aparência do Órbita</span>
+        <span className={`w-10 h-6 rounded-full p-0.5 transition ${look.sincronizar ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+          <span className={`block w-5 h-5 rounded-full bg-white transition ${look.sincronizar ? 'translate-x-4' : ''}`} />
+        </span>
+      </button>
       <button type="button" onClick={copy} className={rowClass}>
         <span>Copiar chave para conectar o Órbita</span>
         <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -140,7 +155,7 @@ function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey
       <p className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">
         {copied
           ? 'Chave copiada. No Órbita: Configurações › Financy › colar a chave.'
-          : 'Com a chave, o Órbita mostra seu saldo do Financy e manda a categoria de cada compra do Apple Pay, que é aplicada quando a compra chegar do banco.'}
+          : 'Com a chave, o Órbita mostra seu saldo do Financy, manda a categoria de cada compra do Apple Pay e passa a cor e a intensidade escolhidas na roda dele.'}
       </p>
     </Group>
   );
@@ -261,6 +276,8 @@ export default function SettingsView(props: SettingsViewProps) {
           </div>
         </div>
       </Group>
+
+      <AppearanceGroup Group={Group} />
 
       <Group label="Registro">
         <Row label="Categorias de gasto" value={`${props.expenseCategories} ativas`} onClick={props.onOpenCategories} />

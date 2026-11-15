@@ -302,7 +302,7 @@ export default function TransactionHistory({
         className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-950 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between transition group"
       >
         <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 pr-2">
-          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBoxClass}`}>
+          <div className={`icon-tile w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBoxClass}`}>
             <IconComponent className="w-4 h-4" />
           </div>
           <div className="min-w-0">
@@ -584,7 +584,7 @@ export default function TransactionHistory({
                 {/* Header da Semana */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <div className="icon-tile p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                       <CalendarRange className="w-4 h-4" />
                     </div>
                     <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">

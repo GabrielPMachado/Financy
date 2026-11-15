@@ -368,7 +368,7 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
         {/* Top bar do Calendário */}
         <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+            <div className="icon-tile p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
               <Calendar className="w-4 h-4" />
             </div>
             <span className="text-sm font-black text-slate-900 dark:text-slate-100 capitalize tracking-wide">
@@ -655,7 +655,7 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
                       {resultado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
+                  <div className="icon-tile w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
                     <Sparkles className="w-5 h-5" />
                   </div>
                 </div>

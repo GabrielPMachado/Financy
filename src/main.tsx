@@ -1,5 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+import { initAppearance } from './lib/appearance';
 import App from './App.tsx';
 import './index.css';
 
@@ -23,6 +24,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+initAppearance();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
