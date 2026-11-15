@@ -21,7 +21,7 @@ const config: CapacitorConfig = {
   appendUserAgent: 'FinancyApp',
   ios: {
     contentInset: 'never',
-    backgroundColor: '#020617',
+    backgroundColor: '#08090B',
     limitsNavigationsToAppBoundDomains: false,
   },
 };

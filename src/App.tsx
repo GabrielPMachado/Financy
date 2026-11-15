@@ -1229,7 +1229,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 ambient text-slate-900 dark:text-slate-100 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
       {/* Main Container */}
       {/* pt-[max(...)]: no iPhone (PWA em tela cheia) o conteúdo começa abaixo do entalhe. */}
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-[max(1.5rem,env(safe-area-inset-top))] lg:pt-[max(2rem,env(safe-area-inset-top))] space-y-6">

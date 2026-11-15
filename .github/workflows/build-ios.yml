@@ -52,8 +52,8 @@ jobs:
         run: |
           npx cap add ios
           npx --yes @capacitor/assets@3 generate --ios \
-            --iconBackgroundColor '#020617' --iconBackgroundColorDark '#020617' \
-            --splashBackgroundColor '#020617' --splashBackgroundColorDark '#020617' || echo "ícones: usando o padrão"
+            --iconBackgroundColor '#08090B' --iconBackgroundColorDark '#08090B' \
+            --splashBackgroundColor '#08090B' --splashBackgroundColorDark '#08090B' || echo "ícones: usando o padrão"
           npx cap sync ios
 
       - name: Esquemas de link (financy:// e abrir o Órbita)

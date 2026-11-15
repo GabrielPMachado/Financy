@@ -304,7 +304,7 @@ const Header = ({
             <button
               type="button"
               onClick={onOpenOrbita}
-              className="w-9 h-9 rounded-full glass text-slate-700 dark:text-slate-200 flex items-center justify-center transition active:scale-95 shrink-0"
+              className="w-9 h-9 rounded-full glass text-[#F2415A] flex items-center justify-center transition active:scale-95 shrink-0"
               aria-label="Abrir o Órbita"
               title="Abrir o Órbita"
             >

@@ -1,4 +1,47 @@
 @import "tailwindcss";
+@import "@fontsource-variable/sora";
+@import "@fontsource-variable/manrope";
+
+/* Identidade compartilhada com o Órbita: mesma tipografia (Sora nos títulos,
+   Manrope no texto), o mesmo grafite neutro no lugar do slate azulado e os
+   mesmos raios. O Financy mantém o verde como cor própria. */
+@theme {
+  --font-sans: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Sora Variable", "Sora", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --color-slate-50: #f6f7f9;
+  --color-slate-100: #eceef1;
+  --color-slate-200: #dcdfe4;
+  --color-slate-300: #c2c6ce;
+  --color-slate-400: #9399a3;
+  --color-slate-500: #6b717c;
+  --color-slate-600: #4e545e;
+  --color-slate-700: #2f343c;
+  --color-slate-800: #21252c;
+  --color-slate-900: #111317;
+  --color-slate-950: #08090b;
+
+  --radius-2xl: 1.25rem;
+}
+
+@layer base {
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Fundo com o mesmo brilho ambiente do Órbita (verde do Financy no lugar do acento). */
+@utility ambient {
+  &:where(.dark, .dark *) {
+    background-color: #08090b;
+    background-image:
+      radial-gradient(70% 45% at 85% 0%, rgb(16 185 129 / 0.16), transparent 70%),
+      radial-gradient(60% 50% at 0% 45%, rgb(76 111 255 / 0.10), transparent 70%),
+      radial-gradient(55% 45% at 100% 95%, rgb(45 212 191 / 0.07), transparent 70%);
+    background-attachment: fixed;
+  }
+}
 
 /* Habilita variante dark: baseada numa classe .dark na raiz (em vez de só
    seguir o prefers-color-scheme do sistema), pra dar pra alternar o tema
@@ -12,11 +55,11 @@
   --dp-bg: #ffffff;
   --dp-border: rgba(203, 213, 225, 0.8); /* slate-300/80 */
   --dp-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.10), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
-  --dp-text: #0f172a; /* slate-900 */
+  --dp-text: #111317; /* slate-900 */
   --dp-header-bg: #ffffff;
   --dp-header-border: rgba(226, 232, 240, 0.9); /* slate-200/90 */
   --dp-day-name: #64748b; /* slate-500 */
-  --dp-day-text: #1e293b; /* slate-800 */
+  --dp-day-text: #21252c; /* slate-800 */
   --dp-day-hover-bg: #f1f5f9; /* slate-100 */
   --dp-month-text: #334155; /* slate-700 */
   --dp-month-hover-bg: #f1f5f9; /* slate-100 */
@@ -31,20 +74,20 @@
 .dark {
   color-scheme: dark;
 
-  --dp-bg: #0f172a; /* slate-900 */
+  --dp-bg: #111317; /* slate-900 */
   --dp-border: rgba(51, 65, 85, 0.8); /* slate-700/80 */
   --dp-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
   --dp-text: #f8fafc; /* slate-50 */
-  --dp-header-bg: #0f172a;
+  --dp-header-bg: #111317;
   --dp-header-border: rgba(51, 65, 85, 0.6);
   --dp-day-name: #94a3b8; /* slate-400 */
   --dp-day-text: #e2e8f0; /* slate-200 */
-  --dp-day-hover-bg: #1e293b; /* slate-800 */
+  --dp-day-hover-bg: #21252c; /* slate-800 */
   --dp-month-text: #cbd5e1; /* slate-300 */
-  --dp-month-hover-bg: #1e293b;
+  --dp-month-hover-bg: #21252c;
   --dp-nav-icon: #94a3b8;
 
-  --chart-cell-stroke: #0f172a; /* slate-900, casa com bg-slate-900 do card no escuro */
+  --chart-cell-stroke: #111317; /* slate-900, casa com bg-slate-900 do card no escuro */
 }
 
 /* Modern Dark Theme for react-datepicker */
@@ -230,7 +273,7 @@ div:focus {
   }
 
   &:where(.dark, .dark *) {
-    background-color: rgb(15 23 42 / 0.92);
+    background-color: rgb(17 19 23 / 0.92);
     border-color: rgb(255 255 255 / 0.1);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.12),
@@ -238,7 +281,7 @@ div:focus {
       0 8px 24px -6px rgb(0 0 0 / 0.5);
 
     @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      background-color: rgb(15 23 42 / 0.5);
+      background-color: rgb(17 19 23 / 0.5);
     }
   }
 }
