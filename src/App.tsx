@@ -33,6 +33,7 @@ import {
   isIOS,
   listenDeepLinks,
   matchHints,
+  matchProvisional,
   connectOrbita,
   openOrbita,
   parseAction,
@@ -510,6 +511,19 @@ export default function App() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser, applePayHints, transactions]);
+
+  // Órbita com o Financy como base: compra do Apple Pay entra provisória e é trocada
+  // pela do banco (com a categoria escolhida) assim que o Open Finance a traz.
+  useEffect(() => {
+    if (!authUser || !hasSyncedFromCloud.current) return;
+    const pairs = matchProvisional(transactions);
+    if (!pairs.length) return;
+    const cat = new Map(pairs.map((p) => [p.bank.id, p.prov.category]));
+    const drop = new Set(pairs.map((p) => p.prov.id));
+    setTransactions((prev) =>
+      prev.filter((t) => !drop.has(t.id)).map((t) => (cat.has(t.id) ? { ...t, category: cat.get(t.id)!, applePayCategory: true } : t)),
+    );
+  }, [authUser, transactions]);
 
   useEffect(() => {
     if (!authUser || !hasSyncedFromCloud.current) return;
