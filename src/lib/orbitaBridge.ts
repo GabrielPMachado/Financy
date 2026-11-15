@@ -22,8 +22,14 @@ export function openOrbita(path: '' | 'financas' | 'foco' | 'checkin' = '') {
   window.location.href = `orbita://${path}`;
 }
 
+/** Abre o Órbita já com a chave: ele conecta sozinho, sem você ver nem colar nada. */
+export function connectOrbita(key: string) {
+  if (!key) return;
+  window.location.href = `orbita://financy/conectar?chave=${encodeURIComponent(key)}`;
+}
+
 export interface FinancyAction {
-  action: 'resumo' | 'quick-add';
+  action: 'resumo' | 'quick-add' | 'conectar-orbita';
   tipo?: 'income' | 'expense' | 'investment';
   valor?: string;
   descricao?: string;
@@ -45,7 +51,7 @@ export function parseAction(input: string | URLSearchParams): FinancyAction | nu
     action = params.get('action');
   }
   if (action === 'novo' || action === 'add') action = 'quick-add';
-  if (action !== 'resumo' && action !== 'quick-add') return null;
+  if (action !== 'resumo' && action !== 'quick-add' && action !== 'conectar-orbita') return null;
   const tipo = params.get('tipo');
   return {
     action,

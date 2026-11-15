@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { ThemePreference } from '../../lib/theme';
 import type { BankSyncState, SyncOptions } from '../../lib/githubSync';
-import { isIOS, openOrbita } from '../../lib/orbitaBridge';
+import { connectOrbita, isIOS, openOrbita } from '../../lib/orbitaBridge';
 import { updateLook, useLook } from '../../lib/appearance';
 import AppearanceGroup from './AppearanceGroup';
 
@@ -117,19 +117,26 @@ function ShortcutKeyGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortc
   );
 }
 
+function AdvancedArea({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-6">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-slate-400 dark:text-slate-500"
+      >
+        Avançado
+        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey'>) {
-  const [copied, setCopied] = useState(false);
   const look = useLook();
-  const copy = async () => {
-    const key = getShortcutKey();
-    if (!key) return;
-    try {
-      await navigator.clipboard.writeText(key);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  };
   return (
     <Group label="Órbita">
       <button type="button" onClick={() => openOrbita('financas')} className={rowClass}>
@@ -148,14 +155,12 @@ function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey
           <span className={`block w-5 h-5 rounded-full bg-white transition ${look.sincronizar ? 'translate-x-4' : ''}`} />
         </span>
       </button>
-      <button type="button" onClick={copy} className={rowClass}>
-        <span>Copiar chave para conectar o Órbita</span>
+      <button type="button" onClick={() => connectOrbita(getShortcutKey())} className={rowClass}>
+        <span>Conectar ao Órbita</span>
         <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
       </button>
       <p className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">
-        {copied
-          ? 'Chave copiada. No Órbita: Configurações › Financy › colar a chave.'
-          : 'Com a chave, o Órbita mostra seu saldo do Financy, manda a categoria de cada compra do Apple Pay e passa a cor e a intensidade escolhidas na roda dele.'}
+        Um toque abre o Órbita já conectado: ele passa a mostrar seu saldo do Financy, manda a categoria de cada compra do Apple Pay e os dois ficam com a mesma aparência.
       </p>
     </Group>
   );
@@ -286,16 +291,19 @@ export default function SettingsView(props: SettingsViewProps) {
         <Row label="Planejamento" value="Dívidas e metas" onClick={props.onOpenPlanning} />
       </Group>
 
-      <BankSyncGroup
-        bankSync={props.bankSync}
-        hasGithubToken={props.hasGithubToken}
-        onSyncNow={props.onSyncNow}
-        onSaveGithubToken={props.onSaveGithubToken}
-        onClearGithubToken={props.onClearGithubToken}
-      />
-
-      <ShortcutKeyGroup getShortcutKey={props.getShortcutKey} />
       {isIOS && <OrbitaGroup getShortcutKey={props.getShortcutKey} />}
+
+      {/* chaves e sincronização manual: tudo acontece sozinho, então fica escondido */}
+      <AdvancedArea>
+        <BankSyncGroup
+          bankSync={props.bankSync}
+          hasGithubToken={props.hasGithubToken}
+          onSyncNow={props.onSyncNow}
+          onSaveGithubToken={props.onSaveGithubToken}
+          onClearGithubToken={props.onClearGithubToken}
+        />
+        <ShortcutKeyGroup getShortcutKey={props.getShortcutKey} />
+      </AdvancedArea>
 
       <Group label="Seus dados">
         <Row label="Exportar JSON" onClick={props.onExportJSON} />

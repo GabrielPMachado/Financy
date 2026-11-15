@@ -19,6 +19,7 @@ import {
   type IconTone,
 } from '../../lib/appearance';
 import Knob from './Knob';
+import { appIconsAvailable, ICON_COLORS, ICON_LOOKS, iconThumb, nearestIconColor } from '../../lib/appIcon';
 
 const MORE = [
   '#FF3B30', '#FF6B6B', '#F97316', '#FB923C', '#F5A524', '#FACC15',
@@ -150,10 +151,69 @@ export default function AppearanceGroup({ Group }: { Group: (p: { label: string;
               </div>
             ))}
           </div>
-          <Segmented<IconStyle> value={look.estiloIcones} options={ICON_STYLES} onChange={(estiloIcones) => updateLook({ estiloIcones })} />
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(ICON_STYLES) as IconStyle[]).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => updateLook({ estiloIcones: k })}
+                className={`px-3.5 h-9 rounded-full text-xs font-semibold border transition ${
+                  look.estiloIcones === k
+                    ? 'glass-strong text-slate-900 dark:text-white'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {ICON_STYLES[k]}
+              </button>
+            ))}
+          </div>
           <Segmented<IconTone> value={look.tomIcones} options={ICON_TONES} onChange={(tomIcones) => updateLook({ tomIcones })} />
         </div>
       </Group>
+
+      {appIconsAvailable() && (
+        <Group label="Ícone do app">
+          <div className="px-4 py-3 space-y-3">
+            <div className="flex justify-between">
+              {ICON_LOOKS.map((l) => {
+                const on = look.iconeApp === l.key;
+                const color = look.iconeSegue ? nearestIconColor(look.cor) : look.corIcone;
+                return (
+                  <button key={l.key} type="button" aria-pressed={on} onClick={() => updateLook({ iconeApp: l.key })} className="flex flex-col items-center gap-1.5">
+                    <span className="p-[3px] rounded-[20px]" style={{ border: `2.5px solid ${on ? look.cor : 'transparent'}` }}>
+                      <img src={iconThumb(l.key, color)} alt="" className="w-[54px] h-[54px] rounded-[13px]" />
+                    </span>
+                    <span className={`text-[11px] font-semibold ${on ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>{l.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className={`flex justify-between px-1 transition ${look.iconeSegue ? 'opacity-40 pointer-events-none' : ''}`}>
+              {ICON_COLORS.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  aria-label={`Cor do ícone ${c.key}`}
+                  onClick={() => updateLook({ corIcone: c.key })}
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ border: `2.5px solid ${look.corIcone === c.key ? c.hex : 'transparent'}` }}
+                >
+                  <span className="w-7 h-7 rounded-full" style={{ background: c.hex }} />
+                </button>
+              ))}
+            </div>
+            <button type="button" role="switch" aria-checked={look.iconeSegue} onClick={() => updateLook({ iconeSegue: !look.iconeSegue })} className="w-full flex items-center justify-between gap-3 text-left">
+              <span>
+                <span className="block text-[15px]">Acompanhar a cor do app</span>
+                <span className="block text-xs text-slate-400">O ícone muda junto quando a cor muda (aqui ou no Órbita)</span>
+              </span>
+              <span className={`shrink-0 w-10 h-6 rounded-full p-0.5 transition ${look.iconeSegue ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                <span className={`block w-5 h-5 rounded-full bg-white transition ${look.iconeSegue ? 'translate-x-4' : ''}`} />
+              </span>
+            </button>
+          </div>
+        </Group>
+      )}
 
       <Overlay open={knob} onClose={() => setKnob(false)}>
         <div className="flex flex-wrap justify-center gap-1 max-w-[340px] rounded-[32px] p-1.5 bg-[#111317]/95">
