@@ -168,3 +168,24 @@ export async function clearApplePayHints(uid: string, ids: string[]): Promise<vo
   ids.forEach((id) => batch.delete(doc(db, 'users', uid, HINTS, id)));
   await batch.commit();
 }
+
+/**
+ * Compras do Apple Pay lançadas pelo Órbita entram como provisórias (source 'applepay').
+ * Quando a mesma compra chega do banco (source 'pluggy', mesmo valor, até 2 dias depois),
+ * a categoria passa para a do banco e a provisória sai — nada fica em dobro.
+ */
+export function matchProvisional<T extends { id: string; amount: number; date: string; type: string; source?: string }>(txs: T[]) {
+  const day = (d: string) => Date.parse(`${d}T12:00:00`) / 86400000;
+  const bank = txs.filter((t) => t.source === 'pluggy' && t.type === 'expense');
+  const used = new Set<string>();
+  const pairs: Array<{ prov: T; bank: T }> = [];
+  for (const p of txs.filter((t) => t.source === 'applepay' && t.type === 'expense')) {
+    const hit = bank
+      .filter((b) => !used.has(b.id) && Math.abs(b.amount - p.amount) < 0.01 && day(b.date) - day(p.date) >= 0 && day(b.date) - day(p.date) <= 2)
+      .sort((a, b) => day(a.date) - day(b.date))[0];
+    if (!hit) continue;
+    used.add(hit.id);
+    pairs.push({ prov: p, bank: hit });
+  }
+  return pairs;
+}
