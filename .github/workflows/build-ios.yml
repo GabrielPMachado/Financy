@@ -1,0 +1,100 @@
+# Gera o Financy nativo para iPhone (.ipa SEM assinatura) num Mac da nuvem do GitHub.
+# Instale com o Sideloadly (ele assina com o seu Apple ID).
+#
+# O app carrega o site publicado (https://financy-2d.web.app), então mudanças no
+# código web chegam sozinhas: só precisa rodar de novo quando mudar a parte nativa
+# (Capacitor, plugins, ícone, esquema financy://).
+name: Build iOS (.ipa para Sideloadly)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'capacitor.config.ts'
+      - 'package-lock.json'
+      - '.github/workflows/build-ios.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'capacitor.config.ts'
+      - 'package-lock.json'
+      - 'resources/**'
+      - '.github/workflows/build-ios.yml'
+
+jobs:
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Build web (o Capacitor exige o dist/, mesmo carregando o site)
+        run: npm run build
+
+      - name: Escolher o Xcode mais novo
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          echo "Usando $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Gerar projeto iOS (Capacitor)
+        env:
+          CAP_REMOTE: '1'
+        run: |
+          npx cap add ios
+          npx --yes @capacitor/assets@3 generate --ios \
+            --iconBackgroundColor '#020617' --iconBackgroundColorDark '#020617' \
+            --splashBackgroundColor '#020617' --splashBackgroundColorDark '#020617' || echo "ícones: usando o padrão"
+          npx cap sync ios
+
+      - name: Esquemas de link (financy:// e abrir o Órbita)
+        run: |
+          PL=ios/App/App/Info.plist
+          B=/usr/libexec/PlistBuddy
+          $B -c "Set :CFBundleDisplayName Financy" "$PL" 2>/dev/null || $B -c "Add :CFBundleDisplayName string Financy" "$PL"
+          $B -c "Delete :CFBundleURLTypes" "$PL" 2>/dev/null || true
+          $B -c "Add :CFBundleURLTypes array" "$PL"
+          $B -c "Add :CFBundleURLTypes:0 dict" "$PL"
+          $B -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.financy.app" "$PL"
+          $B -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PL"
+          $B -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string financy" "$PL"
+          $B -c "Delete :LSApplicationQueriesSchemes" "$PL" 2>/dev/null || true
+          $B -c "Add :LSApplicationQueriesSchemes array" "$PL"
+          $B -c "Add :LSApplicationQueriesSchemes:0 string orbita" "$PL"
+          $B -c "Set :UIUserInterfaceStyle Dark" "$PL" 2>/dev/null || $B -c "Add :UIUserInterfaceStyle string Dark" "$PL"
+          plutil -p "$PL" | head -60
+
+      - name: Compilar (Release, sem assinatura)
+        run: |
+          set -o pipefail
+          if [ -d ios/App/App.xcworkspace ]; then TARGET=(-workspace ios/App/App.xcworkspace); else TARGET=(-project ios/App/App.xcodeproj); fi
+          xcodebuild "${TARGET[@]}" \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            -quiet
+
+      - name: Empacotar .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry Financy.ipa Payload
+          ls -lh Financy.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Financy-ipa
+          path: Financy.ipa
+          retention-days: 14

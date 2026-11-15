@@ -27,6 +27,17 @@ import TransactionModal, { TransactionFormData } from './components/transactions
 import QuickGlance from './components/dashboard/QuickGlance';
 import { buildQuickSummary, isInternalTransfer } from './lib/quickSummary';
 import { processQuickJobs, saveQuickSummary, subscribeQuickJobs } from './lib/quickShortcuts';
+import {
+  clearApplePayHints,
+  isIOS,
+  listenDeepLinks,
+  matchHints,
+  openOrbita,
+  parseAction,
+  subscribeApplePayHints,
+  type ApplePayHint,
+  type FinancyAction,
+} from './lib/orbitaBridge';
 import TransactionHistory from './components/transactions/TransactionHistory';
 import Header from './components/layout/Header';
 import Charts from './components/dashboard/Charts';
@@ -69,6 +80,8 @@ export interface Transaction {
   time?: string;
   /** Origem do lançamento; 'pluggy' = importado automaticamente do banco. */
   source?: string;
+  /** Categoria escolhida no Órbita na hora da compra (Apple Pay). */
+  applePayCategory?: boolean;
   /** Pagamento freelance ao qual este Pix recebido foi vinculado. */
   linkedFreelance?: LinkedFreelance;
 }
@@ -462,6 +475,36 @@ export default function App() {
     });
   }, [authUser]);
 
+  // Órbita: compras do Apple Pay chegam com a categoria escolhida na hora. Quando a
+  // mesma compra entra pelo Open Finance, a categoria é aplicada nela (sem duplicar).
+  const [applePayHints, setApplePayHints] = useState<ApplePayHint[]>([]);
+  useEffect(() => {
+    if (!authUser) return;
+    return subscribeApplePayHints(authUser.uid, setApplePayHints);
+  }, [authUser]);
+  useEffect(() => {
+    if (!authUser || !hasSyncedFromCloud.current || applePayHints.length === 0) return;
+    const { pairs, expired } = matchHints(applePayHints, transactions);
+    if (!pairs.length && !expired.length) return;
+    if (pairs.length) {
+      const byTx = new Map(pairs.map((p) => [p.tx.id, p.hint]));
+      const known = categories.map((c) => (typeof c === 'object' ? c.name : String(c)));
+      const norm = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      setTransactions((prev) =>
+        prev.map((t) => {
+          const h = byTx.get(t.id);
+          if (!h) return t;
+          const category = known.find((k) => norm(k) === norm(h.categoria)) ?? h.categoria;
+          return { ...t, category, applePayCategory: true };
+        }),
+      );
+    }
+    clearApplePayHints(authUser.uid, [...pairs.map((p) => p.hint.id), ...expired.map((h) => h.id)]).catch((err) =>
+      console.error('Erro ao limpar compras do Apple Pay:', err),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser, applePayHints, transactions]);
+
   useEffect(() => {
     if (!authUser || !hasSyncedFromCloud.current) return;
     const timer = setTimeout(() => {
@@ -799,13 +842,16 @@ export default function App() {
     setTransactions(prev => [newTransaction, ...prev]);
   };
 
-  const handleOpenNewTransaction = (type: 'income' | 'expense' | 'investment' = 'expense') => {
+  const handleOpenNewTransaction = (
+    type: 'income' | 'expense' | 'investment' = 'expense',
+    prefill?: { valor?: string; descricao?: string; categoria?: string; data?: string },
+  ) => {
     setEditingTransactionId(null);
     setModalForm({
-      valor: '',
-      descricao: '',
-      categoria: (categories[0] && typeof categories[0] === 'object') ? categories[0].name : String(categories[0] || 'Outros'),
-      data: new Date().toISOString().split('T')[0],
+      valor: prefill?.valor ?? '',
+      descricao: prefill?.descricao ?? '',
+      categoria: prefill?.categoria || ((categories[0] && typeof categories[0] === 'object') ? categories[0].name : String(categories[0] || 'Outros')),
+      data: prefill?.data && /^\d{4}-\d{2}-\d{2}$/.test(prefill.data) ? prefill.data : new Date().toISOString().split('T')[0],
       type,
       repeatType: 'single',
       installmentsCount: 2,
@@ -1135,14 +1181,23 @@ export default function App() {
   const [glanceOpen, setGlanceOpen] = useState<boolean>(
     () => new URLSearchParams(window.location.search).get('action') === 'resumo'
   );
+  // Mesmas ações chegam do Órbita pelo app nativo (financy://resumo, financy://novo?...).
+  const runAction = (a: FinancyAction) => {
+    if (a.action === 'resumo') setGlanceOpen(true);
+    else handleOpenNewTransaction(a.tipo ?? 'expense', { valor: a.valor, descricao: a.descricao, categoria: a.categoria, data: a.data });
+  };
+  const runActionRef = useRef(runAction);
+  runActionRef.current = runAction;
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const action = params.get('action');
-    if (!action) return;
-    if (action === 'quick-add') handleOpenNewTransaction('expense');
-    params.delete('action');
-    const query = params.toString();
-    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    const a = parseAction(params);
+    if (a) {
+      if (a.action === 'quick-add') runAction(a);
+      ['action', 'tipo', 'valor', 'descricao', 'categoria', 'data'].forEach((k) => params.delete(k));
+      const query = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    }
+    return listenDeepLinks((a) => runActionRef.current(a));
     // roda só na abertura: a ação vem do endereço e é removida dele
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1206,6 +1261,7 @@ export default function App() {
           title={VIEW_TITLES[activeView]?.title}
           onSeeDetails={activeView === 'home' ? () => setActiveView('analise') : undefined}
           onSyncNow={handleSyncNow}
+          onOpenOrbita={isIOS ? () => openOrbita() : undefined}
           syncStatus={bankSync.state.status}
           syncMessage={bankSync.state.message}
         />

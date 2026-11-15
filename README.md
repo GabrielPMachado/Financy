@@ -107,6 +107,21 @@ O app mostra uma mensagem diferente para cada causa (token inválido, sem permis
 
 **Mantenha este repositório privado.** Os segredos ficam só nos Secrets do GitHub e o script nunca imprime valores nem descrições de transações no log, apenas contagens.
 
+### iPhone (app nativo, com Sideloadly)
+
+Além do PWA, o Financy tem um app nativo para iPhone (Capacitor), instalado pelo **Sideloadly** no Windows:
+
+1. Na aba **Actions**, rode **Build iOS (.ipa para Sideloadly)** (roda sozinho quando muda a parte nativa).
+2. Baixe o artefato **Financy-ipa**, extraia o `Financy.ipa` e instale pelo Sideloadly com seu Apple ID.
+
+O app carrega o site publicado (`https://financy-2d.web.app`), então toda mudança no código web chega sozinha, sem reinstalar. Só a parte nativa (plugins, ícone, links) pede um .ipa novo. Com Apple ID gratuito o app vale 7 dias (reinstale; os dados ficam na nuvem).
+
+### Ligação com o Órbita
+
+- **Links:** `financy://resumo` abre o resumo; `financy://novo?tipo=expense&valor=12.50&descricao=Padaria&categoria=Alimentação&data=2026-11-14` abre o lançamento já preenchido (no site, os mesmos parâmetros funcionam com `?action=quick-add`). O botão de órbita no topo abre o Órbita (`orbita://`).
+- **Chave:** *Ajustes › Órbita › Copiar chave* e cole no Órbita (*Configurações › Financy*). O Órbita passa a mostrar o saldo do Financy (lido de `users/{uid}/resumo/atual`).
+- **Compras do Apple Pay:** o Órbita grava cada compra com a categoria escolhida na hora em `users/{uid}/comprasApplePay`. Quando a mesma compra chega pelo Open Finance (mesmo valor, até 2 dias depois, horário mais próximo), o Financy aplica a categoria nela e apaga o aviso. Não cria lançamento, então nada é contado em dobro. Avisos sem par em 10 dias são descartados. Código em `src/lib/orbitaBridge.ts`.
+
 ## iPhone (PWA + "Tocar nas costas")
 
 O Financy funciona no iPhone como PWA (sem Mac e sem App Store), com uma "ilha" de resumo no

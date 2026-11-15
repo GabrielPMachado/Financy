@@ -1,7 +1,7 @@
 import React, { memo, useState, useEffect } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import { RefreshCw, Calendar, ChevronLeft, ChevronRight, ChevronDown, History, Smartphone, CheckCircle2, Plus, LogOut } from 'lucide-react';
+import { RefreshCw, Calendar, ChevronLeft, ChevronRight, ChevronDown, History, Smartphone, CheckCircle2, Plus, LogOut, Orbit } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import { QuickAddOverlay } from '../../native/quickAddOverlay';
@@ -32,6 +32,8 @@ export interface HeaderProps {
   userName?: string;
   userEmail?: string;
   onLogout?: () => void;
+  /** Abre o Órbita (só no iPhone). */
+  onOpenOrbita?: () => void;
   onOpenNewTransaction?: () => void;
   saveStatus?: SaveStatusType;
   saveErrorMessage?: string | null;
@@ -132,6 +134,7 @@ const Header = ({
   userName,
   userEmail,
   onLogout,
+  onOpenOrbita,
   onOpenNewTransaction,
   saveStatus = 'saved',
   saveErrorMessage = null,
@@ -296,6 +299,18 @@ const Header = ({
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {onOpenOrbita && (
+            <button
+              type="button"
+              onClick={onOpenOrbita}
+              className="w-9 h-9 rounded-full glass text-slate-700 dark:text-slate-200 flex items-center justify-center transition active:scale-95 shrink-0"
+              aria-label="Abrir o Órbita"
+              title="Abrir o Órbita"
+            >
+              <Orbit className="w-4 h-4" />
+            </button>
+          )}
 
           {onSyncNow && (
             <button

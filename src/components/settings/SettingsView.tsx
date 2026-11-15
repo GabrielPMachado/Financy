@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { ThemePreference } from '../../lib/theme';
 import type { BankSyncState, SyncOptions } from '../../lib/githubSync';
+import { isIOS, openOrbita } from '../../lib/orbitaBridge';
 
 interface SettingsViewProps {
   userName?: string;
@@ -109,6 +110,37 @@ function ShortcutKeyGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortc
       )}
       <p className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">
         Quem tiver essa chave acessa os seus dados financeiros. Cole só no seu Atalho e não compartilhe o Atalho com ninguém.
+      </p>
+    </Group>
+  );
+}
+
+function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey'>) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    const key = getShortcutKey();
+    if (!key) return;
+    try {
+      await navigator.clipboard.writeText(key);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <Group label="Órbita">
+      <button type="button" onClick={() => openOrbita('financas')} className={rowClass}>
+        <span>Abrir o Órbita</span>
+        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+      </button>
+      <button type="button" onClick={copy} className={rowClass}>
+        <span>Copiar chave para conectar o Órbita</span>
+        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+      </button>
+      <p className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">
+        {copied
+          ? 'Chave copiada. No Órbita: Configurações › Financy › colar a chave.'
+          : 'Com a chave, o Órbita mostra seu saldo do Financy e manda a categoria de cada compra do Apple Pay, que é aplicada quando a compra chegar do banco.'}
       </p>
     </Group>
   );
@@ -246,6 +278,7 @@ export default function SettingsView(props: SettingsViewProps) {
       />
 
       <ShortcutKeyGroup getShortcutKey={props.getShortcutKey} />
+      {isIOS && <OrbitaGroup getShortcutKey={props.getShortcutKey} />}
 
       <Group label="Seus dados">
         <Row label="Exportar JSON" onClick={props.onExportJSON} />
