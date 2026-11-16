@@ -3,9 +3,9 @@
 App de finanças pessoais para web e iPhone, em que as transações do **Nubank** e do **Mercado Pago** entram sozinhas via Open Finance. Tem login, sincronização em nuvem e funciona offline.
 
 <p align="center">
-  <img src="docs/demo.gif" alt="Demonstração animada do projeto: controle de saldo, lançamento rápido em 6 etapas e a transação entrando na lista" width="640" />
+  <img src="docs/app.gif" alt="O Financy de verdade numa tela de iPhone: início, análise do mês, contas e o lançamento rápido." width="320" />
   <br />
-  <sub>Controle de saldo, lançamento rápido em 6 etapas e a transação entrando na lista. Demonstração ilustrativa, a mesma do <a href="https://portfolio-financy1.vercel.app">portfólio</a>.</sub>
+  <sub>O Financy de verdade numa tela de iPhone: início, análise do mês, contas e o lançamento rápido. Gravado do app real no navegador, com dados fictícios no lugar da conta real.</sub>
 </p>
 
 ## Recursos
