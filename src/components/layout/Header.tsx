@@ -1,10 +1,8 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import { RefreshCw, Calendar, ChevronLeft, ChevronRight, ChevronDown, History, Smartphone, CheckCircle2, Plus, LogOut, Orbit } from 'lucide-react';
+import { RefreshCw, Calendar, ChevronLeft, ChevronRight, ChevronDown, History, Plus, LogOut, Orbit } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Capacitor } from '@capacitor/core';
-import { QuickAddOverlay } from '../../native/quickAddOverlay';
 import 'react-datepicker/dist/react-datepicker.css';
 
 registerLocale('pt-BR', ptBR);
@@ -175,29 +173,6 @@ const Header = ({
     none: { label: '', value: 0 },
   }[cardMode];
 
-  const isNativeAndroid = Capacitor.getPlatform() === 'android';
-  const [overlayPermissionGranted, setOverlayPermissionGranted] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!isNativeAndroid) return;
-    const checkPermission = () => {
-      QuickAddOverlay.hasOverlayPermission()
-        .then((r) => setOverlayPermissionGranted(!!r.granted))
-        .catch(() => setOverlayPermissionGranted(false));
-    };
-    checkPermission();
-    // Reconfere quando o usuário volta pro app (ex: depois de conceder a permissão na tela do sistema)
-    document.addEventListener('visibilitychange', checkPermission);
-    return () => document.removeEventListener('visibilitychange', checkPermission);
-  }, [isNativeAndroid]);
-
-  const handleActivateOverlay = async () => {
-    try {
-      await QuickAddOverlay.requestOverlayPermission();
-    } catch {
-      // ignora — o usuário decide na tela do sistema
-    }
-  };
 
   const handleIndicatorClick = () => {
     if (saveStatus === 'error') {
@@ -398,26 +373,6 @@ const Header = ({
             </span>
           )}
 
-          {isNativeAndroid && overlayPermissionGranted === false && (
-            <button
-              type="button"
-              onClick={handleActivateOverlay}
-              className="inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 hover:bg-amber-500/20 active:scale-95 transition-all shadow-sm cursor-pointer"
-              title="Ativar o pop-up de lançamento rápido flutuante (permissão do sistema)"
-            >
-              <Smartphone className="w-3 h-3 shrink-0" />
-              <span className="hidden sm:inline">Ativar Pop-up Flutuante</span>
-            </button>
-          )}
-          {isNativeAndroid && overlayPermissionGranted === true && (
-            <span
-              className="inline-flex items-center gap-1.5 px-2 py-1 sm:px-2.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm"
-              title="O pop-up de lançamento rápido flutuante já está ativo"
-            >
-              <CheckCircle2 className="w-3 h-3 shrink-0" />
-              <span className="hidden sm:inline">Pop-up Flutuante Ativo</span>
-            </span>
-          )}
           {/* Alterna pra visão "Todos os meses" (mesma função de sempre, só reposicionada) */}
           <button
             type="button"

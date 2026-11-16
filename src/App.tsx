@@ -12,7 +12,6 @@ import {
   Clock,
   Search,
   Eye,
-  Smartphone,
   Home,
   Settings,
   ChevronRight,
@@ -51,13 +50,11 @@ import LinkPixModal from './components/simulations/LinkPixModal';
 import { CreditCardEdgePanel, CardConfig } from './components/cards/CreditCardEdgePanel';
 import { PlanningEdgePanel, PlannedDebt, PlannedInvestment } from './components/planning/PlanningEdgePanel';
 import Login from './components/auth/Login';
-import { subscribeUserData, saveUserDataToCloud, subscribeAuthState, logout, migrateLegacyDataIfNeeded, auth } from './lib/firebase';
+import { subscribeUserData, saveUserDataToCloud, subscribeAuthState, logout, migrateLegacyDataIfNeeded } from './lib/firebase';
 import { useThemePreference } from './lib/theme';
 import { useBankSync, setGithubToken, type SyncOptions } from './lib/githubSync';
 import { currentTimeHHMM, compareNewestFirst } from './lib/transactions';
-import { onIdTokenChanged, type User } from 'firebase/auth';
-import { Capacitor } from '@capacitor/core';
-import { QuickAddOverlay } from './native/quickAddOverlay';
+import { type User } from 'firebase/auth';
 
 export interface Transaction {
   id: string;
@@ -176,29 +173,6 @@ export default function App() {
     const unsubscribe = subscribeAuthState((user) => {
       setAuthUser(user);
       setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Repassa a sessão de login (uid + ID token) pro overlay nativo de
-  // lançamento rápido, pra ele conseguir ler/escrever direto no Firestore
-  // quando há internet — ver FirestoreSync.kt. onIdTokenChanged dispara de
-  // novo sempre que o Firebase renova o token (a cada ~1h), mantendo o
-  // overlay com um token razoavelmente fresco enquanto o app é aberto de
-  // vez em quando.
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android') return;
-    const unsubscribe = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const idToken = await user.getIdToken();
-          await QuickAddOverlay.setAuthSession({ uid: user.uid, idToken });
-        } catch (e) {
-          console.error('Erro ao repassar sessão pro overlay:', e);
-        }
-      } else {
-        QuickAddOverlay.clearAuthSession().catch(() => {});
-      }
     });
     return () => unsubscribe();
   }, []);
@@ -331,76 +305,6 @@ export default function App() {
     // logo abaixo).
     return [];
   });
-
-  // Mantém o overlay nativo com cache local de cartões/categorias sempre
-  // atualizado, pra ele conseguir mostrar essa informação mesmo offline
-  // (ver FirestoreSync.kt / QuickAddOverlayPlugin.kt).
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android') return;
-    const cardsJson = JSON.stringify(
-      cards.map((c) => ({ id: c.id, name: c.name, bank: c.bank, lastDigits: c.lastDigits }))
-    );
-    QuickAddOverlay.cacheCards({ cardsJson }).catch(() => {});
-  }, [cards]);
-
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android') return;
-    const categoriesJson = JSON.stringify(
-      categories.map((c) => ({ id: c.id, name: c.name, type: c.type, color: c.color }))
-    );
-    QuickAddOverlay.cacheCategories({ categoriesJson }).catch(() => {});
-  }, [categories]);
-
-  // "Limite usado" por cartão no mês corrente real (não o monthFilter do
-  // picker) — mesmo cálculo que o overlay nativo já fazia antes (soma das
-  // despesas do mês vinculadas a cada cardId).
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android') return;
-    const currentMonth = (() => {
-      const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    })();
-    const usedByCard = new Map<string, number>();
-    transactions.forEach((t) => {
-      if (t.type === 'expense' && t.cardId && t.date && t.date.startsWith(currentMonth)) {
-        usedByCard.set(t.cardId, (usedByCard.get(t.cardId) || 0) + t.amount);
-      }
-    });
-    const cardsUsageJson = JSON.stringify(
-      cards.map((c) => ({
-        id: c.id,
-        name: c.name,
-        bank: c.bank,
-        lastDigits: c.lastDigits,
-        limit: c.limit,
-        used: usedByCard.get(c.id) || 0,
-      }))
-    );
-    QuickAddOverlay.cacheCardsUsage({ cardsUsageJson }).catch(() => {});
-  }, [cards, transactions]);
-
-  // Sincroniza transações criadas no overlay enquanto offline (ou sem
-  // sessão válida) assim que o app abre logado — funde na lista local, que
-  // já dispara o fluxo normal de salvamento na nuvem.
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android' || !authUser) return;
-    (async () => {
-      try {
-        const { transactionsJson } = await QuickAddOverlay.getPendingTransactions();
-        const pending = JSON.parse(transactionsJson || '[]');
-        if (Array.isArray(pending) && pending.length > 0) {
-          setTransactions((prev) => {
-            const existingIds = new Set(prev.map((t) => t.id));
-            const newOnes = pending.filter((t: any) => t?.id && !existingIds.has(t.id));
-            return newOnes.length > 0 ? [...newOnes, ...prev] : prev;
-          });
-          await QuickAddOverlay.clearPendingTransactions();
-        }
-      } catch (e) {
-        console.error('Erro ao sincronizar transações pendentes do overlay:', e);
-      }
-    })();
-  }, [authUser]);
 
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'investment'>('all');
   const [searchTerm, setSearchTerm] = useState('');

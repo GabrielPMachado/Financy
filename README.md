@@ -1,6 +1,6 @@
 # Financy
 
-Controle financeiro pessoal para web, iPhone (PWA) e Android (Capacitor), com login, sincronização em nuvem e importação automática das transações do **Nubank** e do **Mercado Pago** via Open Finance.
+App de finanças pessoais para web e iPhone, em que as transações do **Nubank** e do **Mercado Pago** entram sozinhas via Open Finance. Tem login, sincronização em nuvem e funciona offline.
 
 ## Recursos
 
@@ -15,7 +15,7 @@ Controle financeiro pessoal para web, iPhone (PWA) e Android (Capacitor), com lo
 
 ## Stack
 
-React 19, TypeScript, Vite, Tailwind CSS 4, Recharts, Firebase (Auth + Firestore), Capacitor 8 (Android).
+React 19, TypeScript, Vite, Tailwind CSS 4, Recharts, Firebase (Auth + Firestore), Capacitor 8 (app nativo para iPhone), Pluggy (Open Finance).
 
 ## Rodando localmente
 
@@ -27,14 +27,6 @@ npm run lint                 # checagem de tipos
 npm run build
 ```
 
-### Android
-
-```bash
-npm run build
-npx cap sync android
-cd android && ./gradlew assembleDebug   # APK em android/app/build/outputs/apk/debug/app-debug.apk
-```
-
 ### iPhone (PWA, sem App Store)
 
 O workflow `.github/workflows/deploy-web.yml` publica o app em **https://financy-2d.web.app** (Firebase Hosting) a cada push na `main` que muda o app, ou manualmente em **Actions → Publicar site → Run workflow**. Usa o mesmo secret `FIREBASE_SERVICE_ACCOUNT`; se der erro de permissão, dê à conta de serviço o papel **Administrador do Firebase Hosting** (Google Cloud → IAM).
@@ -43,7 +35,6 @@ No iPhone: abra o endereço no **Safari** → Compartilhar → **Adicionar à Te
 
 - Login com Google no app instalado: adicione `https://financy-2d.web.app/__/auth/handler` em *URIs de redirecionamento autorizados* do cliente OAuth "Web client (auto created by Google Service)" (Google Cloud → APIs e serviços → Credenciais). E-mail e senha funcionam sem isso.
 - O site é público, então o build não embute o token do GitHub: cole-o em Ajustes > Bancos para usar *Sincronizar agora*.
-- O atalho de lançamento rápido (sobreposição) é só do Android.
 
 ## Segurança dos dados
 
