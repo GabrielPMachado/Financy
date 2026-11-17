@@ -102,7 +102,16 @@ async function loginWithEmailCode(page, submit, email, gmailAppPassword) {
   const requestedAt = Date.now() - 60_000; // folga para o relógio do servidor de e-mail
   await submit.click();
   console.log('E-mail de acesso pedido ao Meu Pluggy; aguardando no Gmail…');
-  const { code, link } = await waitForAccessEmail(email, gmailAppPassword, requestedAt);
+  let access;
+  try {
+    access = await waitForAccessEmail(email, gmailAppPassword, requestedAt);
+  } catch (err) {
+    // Mostra no log como ficou a tela depois do pedido (sem valores digitados), para saber se o
+    // Meu Pluggy mudou o login (captcha, senha, outro botão) ou se só não mandou o e-mail.
+    await describePage(page);
+    throw err;
+  }
+  const { code, link } = access;
 
   if (link) {
     console.log('Link de acesso recebido; abrindo.');
