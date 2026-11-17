@@ -8,7 +8,7 @@ export default defineConfig(({mode}) => {
   // Studio) e injeta no bundle do cliente. É uma chave client-side mesmo —
   // não existe backend nesse app pra escondê-la — então use uma chave só
   // pro "AI Studio" / free tier e configure limites de uso no Google AI
-  // Studio se for publicar o APK pra outras pessoas.
+  // Studio se for publicar o app pra outras pessoas.
   const env = loadEnv(mode, '.', '');
 
   return {

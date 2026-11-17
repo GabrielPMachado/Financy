@@ -15,7 +15,7 @@ import {
  * "Sincronizar agora": dispara o workflow de sincronização bancária no GitHub
  * Actions (.github/workflows/sync-pluggy.yml) e acompanha o andamento.
  *
- * O token do GitHub NÃO fica no código nem no APK: o usuário cola um token
+ * O token do GitHub NÃO fica no código nem no build: o usuário cola um token
  * "fine-grained" (restrito a este repositório, só permissão Actions: read/write)
  * nos Ajustes, e ele fica apenas no armazenamento local do aparelho.
  */
@@ -50,7 +50,7 @@ export const DEFAULT_SYNC_OPTIONS: SyncOptions = { refresh: true, bank: 'todos' 
 
 /**
  * Token embutido no build (VITE_GITHUB_SYNC_TOKEN no .env.local, que o git ignora),
- * usado quando não há um token colado nos Ajustes. Fica dentro do APK: use um
+ * usado quando não há um token colado nos Ajustes. Fica dentro do bundle do app: use um
  * token fine-grained restrito a este repositório, só com Actions (leitura/escrita).
  */
 const BUILD_TOKEN: string = (import.meta.env.VITE_GITHUB_SYNC_TOKEN as string | undefined) || '';

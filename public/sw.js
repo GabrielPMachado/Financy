@@ -1,4 +1,4 @@
-// Service Worker para suporte a PWA (instalação em PC e Celular / base para APK via PWABuilder)
+// Service Worker do PWA (instalação no iPhone e no computador)
 const CACHE_NAME = 'financas-v2';
 const APP_SHELL = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 
