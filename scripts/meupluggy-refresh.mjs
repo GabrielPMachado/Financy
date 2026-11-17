@@ -168,25 +168,37 @@ async function waitForAccessEmail(user, pass, since) {
     throw new RefreshError('login-falhou', 'O Gmail recusou a senha de app (confira GMAIL_APP_PASSWORD).');
   }
   try {
-    for (let attempt = 0; attempt < 24; attempt++) { // até ~2 min
-      const lock = await client.getMailboxLock('INBOX');
-      try {
-        const uids = await client.search({ since: new Date(since - 86_400_000), from: 'pluggy' }, { uid: true });
-        for (const uid of [...(uids || [])].reverse()) {
-          const msg = await client.fetchOne(String(uid), { internalDate: true, source: true }, { uid: true });
-          if (!msg || new Date(msg.internalDate).getTime() < since) continue;
-          const found = extractAccess(await simpleParser(msg.source));
-          if (found.code || found.link) return found;
+    // Procura na caixa de entrada e também em "Todos os e-mails" e no spam: o Gmail às vezes
+    // arquiva ou marca como spam o e-mail do Pluggy, e o IMAP de INBOX não o vê.
+    const boxes = ['INBOX'];
+    for (const box of await client.list().catch(() => [])) {
+      if (box.specialUse === '\\All' || box.specialUse === '\\Junk') boxes.push(box.path);
+    }
+    for (let attempt = 0; attempt < 60; attempt++) { // até ~5 min (o e-mail às vezes demora mais de 2)
+      for (const box of boxes) {
+        const lock = await client.getMailboxLock(box).catch(() => undefined);
+        if (!lock) continue;
+        try {
+          const uids = await client.search({ since: new Date(since - 86_400_000), from: 'pluggy' }, { uid: true });
+          for (const uid of [...(uids || [])].reverse()) {
+            const msg = await client.fetchOne(String(uid), { internalDate: true, source: true }, { uid: true });
+            if (!msg || new Date(msg.internalDate).getTime() < since) continue;
+            const found = extractAccess(await simpleParser(msg.source));
+            if (found.code || found.link) {
+              if (box !== 'INBOX') console.log(`E-mail de acesso achado fora da caixa de entrada (${box}).`);
+              return found;
+            }
+          }
+        } finally {
+          lock.release();
         }
-      } finally {
-        lock.release();
       }
       await new Promise((r) => setTimeout(r, 5_000));
     }
   } finally {
     await client.logout().catch(() => {});
   }
-  throw new RefreshError('login-falhou', 'O e-mail de acesso do Meu Pluggy não chegou ao Gmail em 2 minutos.');
+  throw new RefreshError('login-falhou', 'O e-mail de acesso do Meu Pluggy não chegou ao Gmail em 5 minutos (procurei na caixa de entrada, em Todos os e-mails e no spam).');
 }
 
 function extractAccess(mail) {
@@ -251,8 +263,17 @@ async function refresh() {
   const page = await context.newPage();
 
   let loggedInThisRun = false;
+  let loginError;
   const autoLogin = async (missingCredentialsCode) => {
-    await loginWithCredentials(page, missingCredentialsCode);
+    // Um login que falhou não é repetido para o próximo banco: cada tentativa pede outro
+    // e-mail de acesso (o novo invalida o anterior) e esperaria mais 5 minutos.
+    if (loginError) throw loginError;
+    try {
+      await loginWithCredentials(page, missingCredentialsCode);
+    } catch (err) {
+      loginError = err;
+      throw err;
+    }
     loggedInThisRun = true;
   };
 
@@ -282,8 +303,9 @@ async function refresh() {
     console.error(err.message);
   }
 
-  // Guarda a sessão (renovada ou não) para as próximas execuções (cache do Actions).
-  if (failures.length === 0) {
+  // Guarda a sessão para as próximas execuções (cache do Actions): sempre que deu certo ou
+  // que o login foi refeito agora, mesmo se outro banco falhou depois.
+  if (failures.length === 0 || loggedInThisRun) {
     mkdirSync('.auth', { recursive: true });
     await context.storageState({ path: STATE_FILE });
   }
