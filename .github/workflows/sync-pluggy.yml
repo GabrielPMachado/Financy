@@ -82,9 +82,12 @@ jobs:
       # Guarda a sessão do Meu Pluggy entre execuções: o robô só faz login de novo
       # (com e-mail e senha, se configurados) quando ela expira. Cada execução salva a
       # sessão renovada, para ela não envelhecer como uma cópia parada.
+      # Restaura e salva em etapas separadas: o actions/cache "inteiro" só salva quando o
+      # job termina verde, e aí uma sessão renovada numa execução que falhou em outro
+      # banco se perdia. Sem ela, toda execução pedia e-mail de acesso de novo.
       - name: Restaurar sessão do Meu Pluggy
         if: steps.plan.outputs.refresh == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .auth
           key: meupluggy-session-${{ github.run_id }}
@@ -99,6 +102,13 @@ jobs:
           MEUPLUGGY_EMAIL: ${{ secrets.MEUPLUGGY_EMAIL }}
           MEUPLUGGY_PASSWORD: ${{ secrets.MEUPLUGGY_PASSWORD }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+
+      - name: Salvar sessão do Meu Pluggy
+        if: always() && steps.plan.outputs.refresh == 'true' && hashFiles('.auth/meupluggy.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .auth
+          key: meupluggy-session-${{ github.run_id }}
 
       - name: Sincronizar
         id: sync
