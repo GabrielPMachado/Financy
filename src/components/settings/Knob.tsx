@@ -155,7 +155,7 @@ export default function Knob({ value, onChange, color, size = 230 }: { value: nu
         width={R * 2}
         height={R * 2}
         className="absolute pointer-events-none"
-        style={{ left: cx - R, top: cy - R, transform: `rotate(${rot}deg)`, transition: 'transform 0.35s cubic-bezier(.3,1.4,.5,1)' }}
+        style={{ left: cx - R, top: cy - R, transform: `rotate(${rot}deg)`, transition: 'transform 0.35s cubic-bezier(.22,1,.36,1)' }}
       >
         <defs>
           <radialGradient id={`body${id}`} cx="35%" cy="30%" r="80%">

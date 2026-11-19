@@ -210,7 +210,7 @@ export default function TransactionModal({
             initial={{ opacity: 0, scale: 0.92, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 15 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 320 }}
+            transition={{ type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
             className="bg-white/85 dark:bg-slate-900/90 backdrop-blur-xl border border-emerald-500/40 p-5 sm:p-7 rounded-3xl w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.6)] my-auto max-h-[92vh] flex flex-col overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1053,7 +1053,7 @@ export default function TransactionModal({
                     className="flex-1 flex flex-col items-center justify-center text-center py-2"
                   >
                     <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3 shadow-lg shadow-emerald-950/50">
-                      <CheckCircle2 className="w-10 h-10 animate-bounce" />
+                      <CheckCircle2 className="w-10 h-10 animate-pulse" />
                     </div>
 
                     <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mb-1">

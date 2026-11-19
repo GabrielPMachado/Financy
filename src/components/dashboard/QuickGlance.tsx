@@ -19,7 +19,7 @@ interface QuickGlanceProps {
 
 const RECENT_LIMIT = 3;
 const AUTO_CLOSE_MS = 12_000;
-const ISLAND_SPRING = { type: 'spring', stiffness: 380, damping: 32 } as const;
+const ISLAND_SPRING = { type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] } as const;
 
 /**
  * "Ilha" de resumo rápido, no estilo da Dynamic Island: nasce como uma pílula
