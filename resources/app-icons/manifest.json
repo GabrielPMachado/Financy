@@ -148,5 +148,125 @@
   "style": "mono",
   "color": null,
   "hex": null
+ },
+ {
+  "name": "GrafiteRoxo",
+  "style": "grafite",
+  "color": "Roxo",
+  "hex": "#8B5CF6"
+ },
+ {
+  "name": "GrafiteIndigo",
+  "style": "grafite",
+  "color": "Indigo",
+  "hex": "#6366F1"
+ },
+ {
+  "name": "GrafiteRosa",
+  "style": "grafite",
+  "color": "Rosa",
+  "hex": "#EC4899"
+ },
+ {
+  "name": "GrafiteLaranja",
+  "style": "grafite",
+  "color": "Laranja",
+  "hex": "#F97316"
+ },
+ {
+  "name": "GrafiteCiano",
+  "style": "grafite",
+  "color": "Ciano",
+  "hex": "#06B6D4"
+ },
+ {
+  "name": "CorRoxo",
+  "style": "cor",
+  "color": "Roxo",
+  "hex": "#8B5CF6"
+ },
+ {
+  "name": "CorIndigo",
+  "style": "cor",
+  "color": "Indigo",
+  "hex": "#6366F1"
+ },
+ {
+  "name": "CorRosa",
+  "style": "cor",
+  "color": "Rosa",
+  "hex": "#EC4899"
+ },
+ {
+  "name": "CorLaranja",
+  "style": "cor",
+  "color": "Laranja",
+  "hex": "#F97316"
+ },
+ {
+  "name": "CorCiano",
+  "style": "cor",
+  "color": "Ciano",
+  "hex": "#06B6D4"
+ },
+ {
+  "name": "ClaroRoxo",
+  "style": "claro",
+  "color": "Roxo",
+  "hex": "#8B5CF6"
+ },
+ {
+  "name": "ClaroIndigo",
+  "style": "claro",
+  "color": "Indigo",
+  "hex": "#6366F1"
+ },
+ {
+  "name": "ClaroRosa",
+  "style": "claro",
+  "color": "Rosa",
+  "hex": "#EC4899"
+ },
+ {
+  "name": "ClaroLaranja",
+  "style": "claro",
+  "color": "Laranja",
+  "hex": "#F97316"
+ },
+ {
+  "name": "ClaroCiano",
+  "style": "claro",
+  "color": "Ciano",
+  "hex": "#06B6D4"
+ },
+ {
+  "name": "ContornoRoxo",
+  "style": "contorno",
+  "color": "Roxo",
+  "hex": "#8B5CF6"
+ },
+ {
+  "name": "ContornoIndigo",
+  "style": "contorno",
+  "color": "Indigo",
+  "hex": "#6366F1"
+ },
+ {
+  "name": "ContornoRosa",
+  "style": "contorno",
+  "color": "Rosa",
+  "hex": "#EC4899"
+ },
+ {
+  "name": "ContornoLaranja",
+  "style": "contorno",
+  "color": "Laranja",
+  "hex": "#F97316"
+ },
+ {
+  "name": "ContornoCiano",
+  "style": "contorno",
+  "color": "Ciano",
+  "hex": "#06B6D4"
  }
 ]

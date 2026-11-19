@@ -188,7 +188,7 @@ export default function AppearanceGroup({ Group }: { Group: (p: { label: string;
                 );
               })}
             </div>
-            <div className={`flex justify-between px-1 transition ${look.iconeSegue ? 'opacity-40 pointer-events-none' : ''}`}>
+            <div className={`flex flex-wrap gap-2.5 px-1 transition ${look.iconeSegue ? 'opacity-40 pointer-events-none' : ''}`}>
               {ICON_COLORS.map((c) => (
                 <button
                   key={c.key}

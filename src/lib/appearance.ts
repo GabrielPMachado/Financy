@@ -25,7 +25,7 @@ export interface Look {
   sincronizar: boolean;
   /** ícone do app (só neste app, não vai para o Órbita) */
   iconeApp: 'grafite' | 'cor' | 'claro' | 'contorno' | 'mono';
-  corIcone: 'Verde' | 'Carmim' | 'Ambar' | 'Azul' | 'Menta' | 'Lima';
+  corIcone: import('./appIcon').IconColor;
   iconeSegue: boolean;
   atualizadoEm: string;
 }
@@ -140,6 +140,14 @@ function commit(next: Look, fromRemote = false) {
 /** Aplica o que está salvo no aparelho (chamar antes do primeiro render). */
 export function initAppearance() {
   paint(look);
+  // ícone seguindo a cor: aplica ao abrir e sempre que o app volta para a frente
+  // (o iOS só troca o ícone com o app em primeiro plano)
+  const follow = () => {
+    if (document.visibilityState !== 'visible' || !look.iconeSegue) return;
+    import('./appIcon').then((m) => m.syncFollowIcon(look.iconeApp, look.cor)).catch(() => {});
+  };
+  setTimeout(follow, 1500);
+  document.addEventListener('visibilitychange', () => setTimeout(follow, 800));
 }
 
 export function updateLook(patch: Partial<Omit<Look, 'atualizadoEm'>>) {

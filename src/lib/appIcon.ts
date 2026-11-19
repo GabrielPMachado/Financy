@@ -20,6 +20,11 @@ export const ICON_COLORS = [
   { key: 'Azul', hex: '#4C8DFF' },
   { key: 'Menta', hex: '#3DD6B0' },
   { key: 'Lima', hex: '#A3E635' },
+  { key: 'Ciano', hex: '#06B6D4' },
+  { key: 'Indigo', hex: '#6366F1' },
+  { key: 'Roxo', hex: '#8B5CF6' },
+  { key: 'Rosa', hex: '#EC4899' },
+  { key: 'Laranja', hex: '#F97316' },
 ] as const;
 export type IconColor = (typeof ICON_COLORS)[number]['key'];
 
@@ -29,14 +34,25 @@ export const iconThumb = (look: IconLook, color: IconColor) => `/app-icons/${ico
 
 export const appIconsAvailable = () => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 
+/** Cor pronta mais próxima pelo matiz (para o ícone seguir a cor do app). */
 export function nearestIconColor(hex: string): IconColor {
-  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  const [r, g, b] = rgb(hex);
+  const hsl = (h: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+    const l = (max + min) / 2;
+    let hue = 0;
+    if (d) hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return { h: (hue * 60 + 360) % 360, l };
+  };
+  const t = hsl(/^#[0-9a-f]{6}$/i.test(hex) ? hex : '#10B981');
   let best: IconColor = 'Verde';
   let dist = Infinity;
   for (const c of ICON_COLORS) {
-    const [R, G, B] = rgb(c.hex);
-    const d = (r - R) ** 2 * 2 + (g - G) ** 2 * 4 + (b - B) ** 2 * 3;
+    const o = hsl(c.hex);
+    const dh = Math.min(Math.abs(t.h - o.h), 360 - Math.abs(t.h - o.h));
+    const d = dh * dh + (t.l - o.l) * (t.l - o.l) * 400;
     if (d < dist) {
       dist = d;
       best = c.key;
@@ -49,9 +65,16 @@ let last: string | undefined;
 export async function setAppIcon(look: IconLook, color: IconColor) {
   if (!appIconsAvailable()) return;
   const name = iconName(look, color);
+  if (last === undefined) last = (await AppIcon.getName().catch(() => ({ value: null }))).value ?? 'GrafiteVerde';
   if (name === last) return;
-  last = name;
   // o principal é grafite + verde; o resto são ícones alternativos
   if (name === 'GrafiteVerde') await AppIcon.reset({ suppressNotification: true });
   else await AppIcon.change({ name, suppressNotification: true });
+  last = name; // só depois de dar certo: se falhar, tenta de novo na próxima vez
+}
+
+/** Com "seguir a cor" ligado, aplica o ícone que combina com a cor atual (ao abrir e ao voltar para o app). */
+export function syncFollowIcon(look: IconLook, cor: string) {
+  if (!appIconsAvailable()) return;
+  setAppIcon(look, nearestIconColor(cor)).catch(() => {});
 }
