@@ -84,7 +84,7 @@ function Overlay({ open, onClose, children }: { open: boolean; onClose: () => vo
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 260 }}
+            transition={{ type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
           >
             {children}
           </motion.div>

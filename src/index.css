@@ -333,6 +333,7 @@ div:focus {
 :root[data-icon-style="simples"] .icon-tile > svg { width: 1.3em; height: 1.3em; transform: scale(1.25); }
 
 /* pulinho do ícone ao ativar uma aba (igual ao Órbita) */
-@keyframes tab-bounce { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
-.tab-bounce { animation: tab-bounce 0.35s cubic-bezier(.3,1.4,.5,1); }
+/* aba ativa: sobe um pouquinho e acende, sem quicar */
+@keyframes tab-bounce { 0% { transform: translateY(2px); opacity: .55; } 100% { transform: translateY(0); opacity: 1; } }
+.tab-bounce { animation: tab-bounce 0.28s cubic-bezier(.22,1,.36,1); }
 @media (prefers-reduced-motion: reduce) { .tab-bounce { animation: none; } }

@@ -248,7 +248,7 @@ export default function PendingSimulationsSidebar({
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              transition={{ type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
               className="w-screen max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-between shadow-2xl pointer-events-auto relative overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >

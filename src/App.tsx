@@ -1468,7 +1468,7 @@ export default function App() {
                     scrollToTop();
                   }
                 }}
-                style={{ flexGrow: isActive ? 1.25 : 1, flexBasis: 0, transition: 'flex-grow 0.35s cubic-bezier(.3,1.3,.5,1)' }}
+                style={{ flexGrow: isActive ? 1.25 : 1, flexBasis: 0, transition: 'flex-grow 0.35s cubic-bezier(.22,1,.36,1)' }}
                 className="relative min-w-0 flex items-center justify-center gap-1 h-11 px-0.5 rounded-full text-[11px] font-semibold active:scale-95 transition-transform"
               >
                 <span

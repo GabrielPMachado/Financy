@@ -162,7 +162,7 @@ export const PlanningEdgePanel: React.FC<PlanningEdgePanelProps> = ({
         onClick={() => setIsOpen(true)}
         initial={{ x: -20 }}
         animate={{ x: isOpen ? -100 : 0 }}
-        transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+        transition={{ type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
         className="fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-white/90 dark:bg-slate-900/90 hover:bg-slate-100 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 border-r border-y border-emerald-500/30 pr-2.5 pl-1.5 py-4 rounded-r-2xl shadow-2xl backdrop-blur-md flex items-center gap-1.5 group cursor-pointer transition-colors"
         title="Abrir Área de Planejamento"
       >
@@ -190,7 +190,7 @@ export const PlanningEdgePanel: React.FC<PlanningEdgePanelProps> = ({
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              transition={{ type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={{ left: 0.8, right: 0 }}
