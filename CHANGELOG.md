@@ -3,6 +3,17 @@
 Todas as mudanças relevantes do Financy ficam registradas aqui.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/). A versão é a mesma do `package.json`.
 
+## [2.2.0] - 2026-11-20
+
+### Mudado
+- Ajustes reorganizados: um menu curto com Contas e conexões, Registro e App (Aparência, Atualizar bancos, Seus dados), e cada item abre a própria tela. O menu mostra quantas conexões estão ligadas e quais precisam de atenção.
+- O Atalho do iPhone virou uma conexão: copiar a chave e testar se ela ainda funciona. "Abrir o Órbita" fica no painel do Órbita, e "Mesma aparência do Órbita" em Aparência.
+- A versão do app aparece no rodapé dos Ajustes.
+
+### Removido
+- Assistente de IA do Planejamento: o site publicado não leva a chave do Gemini, então ele nunca funcionava. Saem também a dependência @google/genai e a configuração da chave.
+- Código que não era mais usado: o painel de resumo antigo, botões e propriedades de exportar/importar que já tinham saído da tela, ícones e variáveis sem uso, e as dependências @types/express, autoprefixer e esbuild.
+
 ## [2.1.0] - 2026-11-20
 
 ### Adicionado

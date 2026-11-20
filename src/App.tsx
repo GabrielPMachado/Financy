@@ -4,24 +4,11 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import {
-  PlusCircle,
-  PieChart,
-  Plus,
-  Calculator,
-  Clock,
-  Search,
-  Eye,
-  Home,
-  Settings,
-  ChevronRight,
-  Link2
-} from 'lucide-react';
+import { PieChart, Calculator, Clock, Home, Settings, ChevronRight, Link2 } from 'lucide-react';
 import CategoryModal, { CategoryData } from './components/categories/CategoryModal';
 import SimulacaoGanhosModal from './components/simulations/SimulacaoGanhosModal';
 import PendingSimulationsSidebar, { PendingSimulation, DailyBreakdownItem } from './components/simulations/PendingSimulationsSidebar';
 import ManageCategoriesModal from './components/categories/ManageCategoriesModal';
-import SummaryCards from './components/dashboard/SummaryCards';
 import TransactionModal, { TransactionFormData } from './components/transactions/TransactionModal';
 import QuickGlance from './components/dashboard/QuickGlance';
 import { buildQuickSummary, isInternalTransfer } from './lib/quickSummary';
@@ -965,9 +952,6 @@ export default function App() {
     .filter(t => t.type === 'expense' && !t.cardId && !isInternalTransfer(t))
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const totalInvestments = monthTransactions
-    .filter(t => t.type === 'investment' || t.category.toLowerCase().includes('invest'))
-    .reduce((acc, curr) => acc + curr.amount, 0);
 
   // Total das simulações pendentes de recebimento (todas, não só do mês
   // filtrado) — usado no cartão do topo da aba Contas.
@@ -1034,13 +1018,6 @@ export default function App() {
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
   }, [monthTransactions]);
 
-  // Filtragem de transações
-  const filteredTransactions = transactions.filter(t => {
-    const matchesType = filterType === 'all' || t.type === filterType;
-    const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          t.category.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesType && matchesSearch;
-  });
 
   /**
    * Vincula um Pix já recebido (receita importada do banco) a uma pendência
@@ -1076,11 +1053,6 @@ export default function App() {
 
   const historyRef = useRef<HTMLDivElement>(null);
 
-  const scrollToHistory = () => {
-    setTimeout(() => {
-      historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
-  };
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1191,8 +1163,6 @@ export default function App() {
           income={totalIncome}
           expense={totalExpense}
           userName={greetingName}
-          userEmail={authUser.email || undefined}
-          onLogout={handleLogout}
           onOpenNewTransaction={() => handleOpenNewTransaction('expense')}
           saveStatus={saveStatus}
           saveErrorMessage={saveErrorMessage}
@@ -1235,10 +1205,6 @@ export default function App() {
                 onEditTransaction={handleEditTransaction}
                 onOpenNewTransaction={() => handleOpenNewTransaction('expense')}
                 onOpenManageCategories={() => setIsManageCategoriesOpen(true)}
-                onOpenNewCategory={(type) => handleOpenNewCategory(type)}
-                onExportJSON={handleExportJSON}
-                onExportCSV={handleExportCSV}
-                onImportJSON={handleImportJSON}
                 formatCurrency={formatCurrency}
               />
             </div>
@@ -1532,7 +1498,6 @@ export default function App() {
       {/* Painel Edge de Planejamento (dívidas e investimentos futuros + IA) —
           do lado oposto ao dos cartões; é só simulação, não mexe no saldo real. */}
       <PlanningEdgePanel
-        currentBalance={totalBalance}
         plannedDebts={plannedDebts}
         setPlannedDebts={setPlannedDebts}
         plannedInvestments={plannedInvestments}

@@ -1,22 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Calculator, 
-  Sparkles, 
-  X, 
-  Check, 
-  Pizza, 
-  Clock, 
-  ArrowRight,
-  RotateCcw,
-  PlusCircle,
-  CalendarDays,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  CheckSquare,
-  Square
-} from 'lucide-react';
+import { Calculator, Sparkles, X, Check, Pizza, Clock, RotateCcw, CalendarDays, Calendar, ChevronLeft, ChevronRight, CheckSquare, Square } from 'lucide-react';
 import { getHolidayName } from '../../lib/holidays';
 import { calcularGanhoDia } from '../../lib/freelance';
 

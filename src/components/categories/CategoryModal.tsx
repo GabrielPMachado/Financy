@@ -18,7 +18,7 @@ interface CategoryModalProps {
   };
 }
 
-export default function CategoryModal({ isOpen, onClose, onSave, initialType = 'Despesa variável', colors }: CategoryModalProps) {
+export default function CategoryModal({ isOpen, onClose, onSave, initialType = 'Despesa variável' }: CategoryModalProps) {
   const [categoryName, setCategoryName] = useState('');
   const [categoryType, setCategoryType] = useState('Despesa variável');
   const [selectedColor, setSelectedColor] = useState('#F43F5E');

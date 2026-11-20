@@ -2,7 +2,7 @@ name: Publicar site (PWA para iPhone)
 
 # Publica o app em https://financy-2d.web.app (Firebase Hosting). No iPhone, abra
 # o endereço no Safari > Compartilhar > Adicionar à Tela de Início.
-# O site é público: não embute VITE_GITHUB_SYNC_TOKEN nem GEMINI_API_KEY no
+# O site é público: não embute VITE_GITHUB_SYNC_TOKEN no
 # build (cole o token nos Ajustes do app).
 on:
   push:

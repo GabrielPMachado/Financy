@@ -55,7 +55,7 @@ Roda como PWA no navegador e como app nativo no iPhone (Capacitor), que carrega 
 - Cartões de crédito com limite usado e pagamento de fatura
 - Categorias personalizadas, histórico com filtros e exportação (JSON/CSV)
 - Análise mensal por categoria e comparação com o mês anterior
-- Calculadora freelancer, pendências a receber e área de planejamento (com assistente de IA opcional)
+- Calculadora freelancer, pendências a receber e área de planejamento (dívidas e metas)
 - Tema claro, escuro ou automático, com cores e ícones compartilhados com o [Órbita](https://github.com/GabrielPMachado/Orbita)
 - Sincronização em tempo real entre dispositivos (Firebase) e funcionamento offline
 - Importação automática dos bancos de hora em hora (GitHub Actions + Meu Pluggy)
@@ -95,7 +95,6 @@ flowchart LR
   DEPLOY --> HOST
   HOST --> PWA
   ORB <-->|"resumo, aparência,<br/>compras do Apple Pay"| FS
-  PWA -.->|opcional| GEM[Gemini API]
 ```
 
 **Fluxo de uma transação bancária**
@@ -115,7 +114,6 @@ flowchart LR
 | iPhone | PWA com service worker + Capacitor 8 (app nativo) |
 | Open Finance | Pluggy / Meu Pluggy, Playwright, IMAP (login automático) |
 | Automação | GitHub Actions (sync de hora em hora, deploy, build do .ipa, CI) |
-| IA (opcional) | Google Gemini no assistente de planejamento |
 
 ## Estrutura de pastas
 
@@ -175,7 +173,6 @@ Todas estão documentadas em [`.env.example`](.env.example). Nenhuma é obrigat�
 
 | Variável | Para que serve |
 | --- | --- |
-| `GEMINI_API_KEY` | Assistente de IA do planejamento (opcional) |
 | `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_ITEM_IDS` | Sincronização bancária |
 | `FIREBASE_SERVICE_ACCOUNT`, `SYNC_USER_EMAIL` | Onde o sync grava os lançamentos |
 | `VITE_GITHUB_SYNC_TOKEN` | Botão "Sincronizar agora" (prefira colar o token nos Ajustes) |
@@ -326,7 +323,7 @@ Limites do iOS: a ação **Abrir URLs** abre no Safari, não no app da Tela de I
 
 - As regras do Firestore (`firestore.rules`) só permitem que cada usuário autenticado leia e escreva os próprios dados em `users/{uid}`. Publique-as com `firebase deploy --only firestore:rules` ou pelo console.
 - Os segredos ficam só nos Secrets do GitHub, e o script de sync nunca imprime valores nem descrições de transações no log, apenas contagens.
-- O site é público, então o build não embute o token do GitHub nem a chave do Gemini.
+- O site é público, então o build não embute o token do GitHub.
 
 ## Licença
 
