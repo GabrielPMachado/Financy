@@ -1,20 +1,12 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Search, Filter, ArrowUpRight, ArrowDownRight, Tag, Calendar, Trash2, Edit2, PlusCircle, X, PiggyBank, FolderPlus, Download, Upload, FileJson, FileSpreadsheet, List, CalendarRange } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CategoryItem } from '../../App';
+import type { CategoryItem, Transaction } from '../../App';
 import { compareNewestFirst, formatDateTime } from '../../lib/transactions';
 import { isInternalTransfer } from '../../lib/quickSummary';
 
-export interface Transaction {
-  id: string;
-  description: string;
-  amount: number;
-  type: 'income' | 'expense' | 'investment';
-  category: string;
-  date: string;
-  time?: string;
-  linkedFreelance?: { weekLabel?: string };
-}
+// um tipo só para o app inteiro (antes havia uma cópia reduzida aqui, que divergia da de App.tsx)
+export type { Transaction } from '../../App';
 
 export type FilterType = 'all' | 'income' | 'expense' | 'investment';
 
