@@ -18,6 +18,7 @@ service-account*.json
 *.keystore
 *.jks
 .auth/
+.auth-cache/
 
 # Cache local do Firebase CLI
 .firebase/

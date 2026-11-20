@@ -85,13 +85,31 @@ jobs:
       # Restaura e salva em etapas separadas: o actions/cache "inteiro" só salva quando o
       # job termina verde, e aí uma sessão renovada numa execução que falhou em outro
       # banco se perdia. Sem ela, toda execução pedia e-mail de acesso de novo.
+      #
+      # O repositório é público, e o CI de um pull request (inclusive de fork) consegue
+      # restaurar os caches da main. Por isso a sessão vai para o cache só CRIPTOGRAFADA
+      # (AES-256, chave num secret): quem restaurar o cache sem o secret não lê nada.
+      # Chave: o secret MEUPLUGGY_SESSION_KEY; sem ele, usa o PLUGGY_CLIENT_SECRET.
       - name: Restaurar sessão do Meu Pluggy
         if: steps.plan.outputs.refresh == 'true'
         uses: actions/cache/restore@v4
         with:
-          path: .auth
-          key: meupluggy-session-${{ github.run_id }}
-          restore-keys: meupluggy-session-
+          path: .auth-cache
+          key: meupluggy-session-enc-${{ github.run_id }}
+          restore-keys: meupluggy-session-enc-
+
+      - name: Abrir sessão do Meu Pluggy
+        if: steps.plan.outputs.refresh == 'true' && hashFiles('.auth-cache/meupluggy.enc') != ''
+        env:
+          SESSION_KEY: ${{ secrets.MEUPLUGGY_SESSION_KEY || secrets.PLUGGY_CLIENT_SECRET }}
+        run: |
+          mkdir -p .auth
+          if [ -z "$SESSION_KEY" ] || ! openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SESSION_KEY \
+              -in .auth-cache/meupluggy.enc -out .auth/meupluggy.json 2>/dev/null; then
+            rm -f .auth/meupluggy.json
+            echo "Sessão salva não abriu (chave trocada?): o robô entra de novo."
+          fi
+          rm -rf .auth-cache
 
       - name: Atualizar no Meu Pluggy
         id: refresh
@@ -103,12 +121,27 @@ jobs:
           MEUPLUGGY_PASSWORD: ${{ secrets.MEUPLUGGY_PASSWORD }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
 
-      - name: Salvar sessão do Meu Pluggy
+      - name: Criptografar sessão do Meu Pluggy
+        id: seal
         if: always() && steps.plan.outputs.refresh == 'true' && hashFiles('.auth/meupluggy.json') != ''
+        env:
+          SESSION_KEY: ${{ secrets.MEUPLUGGY_SESSION_KEY || secrets.PLUGGY_CLIENT_SECRET }}
+        run: |
+          if [ -z "$SESSION_KEY" ]; then
+            echo "::warning::Sem MEUPLUGGY_SESSION_KEY nem PLUGGY_CLIENT_SECRET: a sessão não é salva."
+            exit 0
+          fi
+          mkdir -p .auth-cache
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:SESSION_KEY \
+            -in .auth/meupluggy.json -out .auth-cache/meupluggy.enc
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Salvar sessão do Meu Pluggy
+        if: always() && steps.seal.outputs.ok == 'true'
         uses: actions/cache/save@v4
         with:
-          path: .auth
-          key: meupluggy-session-${{ github.run_id }}
+          path: .auth-cache
+          key: meupluggy-session-enc-${{ github.run_id }}
 
       - name: Sincronizar
         id: sync
