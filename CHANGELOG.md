@@ -3,6 +3,16 @@
 Todas as mudanças relevantes do Financy ficam registradas aqui.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/). A versão é a mesma do `package.json`.
 
+## [2.1.0] - 2026-11-20
+
+### Adicionado
+- Ajustes › Contas e conexões: conta Financy, Órbita, bancos (token do GitHub) e notificações num lugar só, com o estado de cada um. Tocar abre os botões para entrar/conectar e para testar a conexão de verdade, com o resultado logo abaixo.
+- Notificações no app do iPhone: lembrete um dia antes do vencimento da fatura de cada cartão e de cada dívida planejada, às 9h, com botão de notificação de teste.
+- O Financy mostra quando o Órbita foi visto pela última vez (o Órbita avisa ao abrir).
+
+### Mudado
+- O token do GitHub e o "Conectar ao Órbita" passaram para Contas e conexões.
+
 ## [2.0.0] - 2026-11-16
 
 O Financy passa a ser um app para web e iPhone, com app nativo e ligado ao Órbita.

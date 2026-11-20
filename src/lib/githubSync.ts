@@ -217,3 +217,15 @@ export function useBankSync(): {
 
   return { state, hasToken, start, refreshTokenFlag };
 }
+
+/** Testa o token salvo: o GitHub precisa enxergar o workflow dos bancos. */
+export async function testGithubToken(): Promise<string> {
+  const token = getGithubToken();
+  if (!token) throw new Error('Nenhum token salvo.');
+  const res = await fetch(`${REPO_API}/workflows/sync-pluggy.yml`, { headers: githubHeaders(token) }).catch(() => null);
+  if (!res) throw new Error('Sem resposta do GitHub. Confira a internet.');
+  if (res.status === 401) throw new Error('O GitHub recusou o token (expirado ou revogado).');
+  if (res.status === 403 || res.status === 404) throw new Error('O token não tem acesso ao repositório financy (permissão Actions).');
+  if (!res.ok) throw new Error(`O GitHub respondeu ${res.status}.`);
+  return 'O GitHub aceitou o token: dá para atualizar os bancos';
+}

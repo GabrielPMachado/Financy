@@ -2,9 +2,10 @@ import { useState, type ReactNode } from 'react';
 import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { ThemePreference } from '../../lib/theme';
 import type { BankSyncState, SyncOptions } from '../../lib/githubSync';
-import { connectOrbita, isIOS, openOrbita } from '../../lib/orbitaBridge';
+import { isIOS, openOrbita } from '../../lib/orbitaBridge';
 import { updateLook, useLook } from '../../lib/appearance';
 import AppearanceGroup from './AppearanceGroup';
+import ConnectionsGroup from './ConnectionsGroup';
 
 interface SettingsViewProps {
   userName?: string;
@@ -28,6 +29,8 @@ interface SettingsViewProps {
   onClearGithubToken: () => void;
   /** Chave de acesso do Atalho do iPhone (token de atualização da sessão atual). */
   getShortcutKey: () => string;
+  /** a permissão ou a preferência de lembretes mudou: reagendar */
+  onRemindersChanged?: () => void;
 }
 
 const THEME_OPTIONS: { key: ThemePreference; label: string }[] = [
@@ -135,7 +138,7 @@ function AdvancedArea({ children }: { children: ReactNode }) {
   );
 }
 
-function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey'>) {
+function OrbitaGroup() {
   const look = useLook();
   return (
     <Group label="Órbita">
@@ -155,19 +158,14 @@ function OrbitaGroup({ getShortcutKey }: Pick<SettingsViewProps, 'getShortcutKey
           <span className={`block w-5 h-5 rounded-full bg-white transition ${look.sincronizar ? 'translate-x-4' : ''}`} />
         </span>
       </button>
-      <button type="button" onClick={() => connectOrbita(getShortcutKey())} className={rowClass}>
-        <span>Conectar ao Órbita</span>
-        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-      </button>
       <p className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">
-        Um toque abre o Órbita já conectado: ele passa a mostrar seu saldo do Financy, manda a categoria de cada compra do Apple Pay e os dois ficam com a mesma aparência.
+        Conecte em Contas e conexões: o Órbita passa a mostrar seu saldo do Financy, manda a categoria de cada compra do Apple Pay e os dois ficam com a mesma aparência.
       </p>
     </Group>
   );
 }
 
-function BankSyncGroup(props: Pick<SettingsViewProps, 'bankSync' | 'hasGithubToken' | 'onSyncNow' | 'onSaveGithubToken' | 'onClearGithubToken'>) {
-  const [tokenDraft, setTokenDraft] = useState('');
+function BankSyncGroup(props: Pick<SettingsViewProps, 'bankSync' | 'hasGithubToken' | 'onSyncNow'>) {
   const busy = props.bankSync.status === 'starting' || props.bankSync.status === 'running';
   const statusColor =
     props.bankSync.status === 'error'
@@ -197,47 +195,8 @@ function BankSyncGroup(props: Pick<SettingsViewProps, 'bankSync' | 'hasGithubTok
         <p role="status" className={`px-4 py-2.5 text-xs ${statusColor}`}>{props.bankSync.message}</p>
       )}
 
-      {props.hasGithubToken ? (
-        <button type="button" onClick={props.onClearGithubToken} className={rowClass}>
-          <span>Token do GitHub</span>
-          <span className="text-sm text-slate-400 dark:text-slate-500">Configurado · remover</span>
-        </button>
-      ) : (
-        <form
-          className="px-4 py-3 space-y-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (tokenDraft.trim()) {
-              props.onSaveGithubToken(tokenDraft.trim());
-              setTokenDraft('');
-            }
-          }}
-        >
-          <label htmlFor="github-token" className="block text-[15px] text-slate-900 dark:text-slate-100">
-            Token do GitHub
-          </label>
-          <p className="text-xs text-slate-400 dark:text-slate-500">
-            Crie um token restrito ao repositório financy, só com a permissão Actions (leitura e escrita). Ele fica salvo apenas neste aparelho.
-          </p>
-          <div className="flex gap-2">
-            <input
-              id="github-token"
-              type="password"
-              autoComplete="off"
-              value={tokenDraft}
-              onChange={(e) => setTokenDraft(e.target.value)}
-              placeholder="github_pat_…"
-              className="flex-1 min-w-0 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-            />
-            <button
-              type="submit"
-              disabled={!tokenDraft.trim()}
-              className="px-4 rounded-xl bg-[#1c1c1e] dark:bg-white text-white dark:text-slate-900 text-sm font-semibold disabled:opacity-40"
-            >
-              Salvar
-            </button>
-          </div>
-        </form>
+      {!props.hasGithubToken && (
+        <p className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500">Salve o token do GitHub em Contas e conexões › Bancos.</p>
       )}
     </Group>
   );
@@ -257,6 +216,16 @@ export default function SettingsView(props: SettingsViewProps) {
           <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{props.userEmail}</p>
         </div>
       </div>
+
+      <ConnectionsGroup
+        userEmail={props.userEmail}
+        hasGithubToken={props.hasGithubToken}
+        onSaveGithubToken={props.onSaveGithubToken}
+        onClearGithubToken={props.onClearGithubToken}
+        onLogout={props.onLogout}
+        getShortcutKey={props.getShortcutKey}
+        onRemindersChanged={props.onRemindersChanged}
+      />
 
       <Group label="Aparência">
         <div className="px-4 py-3 space-y-2">
@@ -291,7 +260,7 @@ export default function SettingsView(props: SettingsViewProps) {
         <Row label="Planejamento" value="Dívidas e metas" onClick={props.onOpenPlanning} />
       </Group>
 
-      {isIOS && <OrbitaGroup getShortcutKey={props.getShortcutKey} />}
+      {isIOS && <OrbitaGroup />}
 
       {/* chaves e sincronização manual: tudo acontece sozinho, então fica escondido */}
       <AdvancedArea>
@@ -299,8 +268,6 @@ export default function SettingsView(props: SettingsViewProps) {
           bankSync={props.bankSync}
           hasGithubToken={props.hasGithubToken}
           onSyncNow={props.onSyncNow}
-          onSaveGithubToken={props.onSaveGithubToken}
-          onClearGithubToken={props.onClearGithubToken}
         />
         <ShortcutKeyGroup getShortcutKey={props.getShortcutKey} />
       </AdvancedArea>

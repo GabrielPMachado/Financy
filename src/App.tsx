@@ -48,6 +48,7 @@ import AnalysisView from './components/dashboard/AnalysisView';
 import SettingsView from './components/settings/SettingsView';
 import LinkPixModal from './components/simulations/LinkPixModal';
 import { CreditCardEdgePanel, CardConfig } from './components/cards/CreditCardEdgePanel';
+import { scheduleBillReminders } from './lib/notifications';
 import { PlanningEdgePanel, PlannedDebt, PlannedInvestment } from './components/planning/PlanningEdgePanel';
 import Login from './components/auth/Login';
 import { subscribeUserData, saveUserDataToCloud, subscribeAuthState, logout, migrateLegacyDataIfNeeded } from './lib/firebase';
@@ -452,6 +453,15 @@ export default function App() {
       console.error('Erro ao salvar no LocalStorage:', e);
     }
   }, [transactions, categories, pendingSimulations, cards, plannedDebts, plannedInvestments]);
+
+  // lembretes de vencimento (só no app do iPhone): reagenda quando cartões ou dívidas mudam
+  const [remindersSignal, setRemindersSignal] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      scheduleBillReminders(cards, plannedDebts).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [cards, plannedDebts, remindersSignal]);
 
   const performSave = useCallback(() => {
     if (!authUser) {
@@ -1386,6 +1396,7 @@ export default function App() {
               reader.readAsText(file);
             }}
             onLogout={handleLogout}
+            onRemindersChanged={() => setRemindersSignal(Date.now())}
             bankSync={bankSync.state}
             hasGithubToken={bankSync.hasToken}
             onSyncNow={handleSyncNow}
