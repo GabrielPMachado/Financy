@@ -1,20 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  CreditCard,
-  ChevronLeft,
-  Edit2,
-  Check,
-  X,
-  ShieldAlert,
-  TrendingDown,
-  Plus,
-  Trash2,
-  Building2,
-  CalendarDays,
-  DollarSign,
-  Sparkles,
-} from 'lucide-react';
+import { CreditCard, ChevronLeft, Edit2, X, ShieldAlert, TrendingDown, Plus, Trash2, Building2, CalendarDays, DollarSign } from 'lucide-react';
 import { Transaction } from '../../App';
 import CurrencyInput from '../common/CurrencyInput';
 
@@ -709,26 +695,6 @@ export const CreditCardEdgePanel: React.FC<CreditCardEdgePanelProps> = ({
     return 'bg-emerald-500 text-emerald-600 dark:text-emerald-400';
   };
 
-  const getCardGradient = (bankName?: string, color?: CardConfig['color']) => {
-    if (bankName && BANK_PRESETS[bankName]) {
-      return BANK_PRESETS[bankName].gradient;
-    }
-    switch (color) {
-      case 'purple':
-        return 'from-slate-900 via-purple-950 to-slate-900 border-purple-500/30';
-      case 'amber':
-        return 'from-slate-900 via-amber-950 to-slate-900 border-amber-500/30';
-      case 'rose':
-        return 'from-slate-900 via-rose-950 to-slate-900 border-rose-500/30';
-      case 'blue':
-        return 'from-slate-900 via-blue-950 to-slate-900 border-blue-500/30';
-      case 'slate':
-        return 'from-slate-900 via-slate-800 to-slate-950 border-slate-300 dark:border-slate-700';
-      case 'emerald':
-      default:
-        return 'from-slate-900 via-emerald-950 to-slate-900 border-emerald-500/30';
-    }
-  };
 
   const handleOpenAddCard = () => {
     setEditingCard(null);

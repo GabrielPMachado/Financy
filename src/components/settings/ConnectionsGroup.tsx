@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Bell, CheckCircle2, ChevronRight, Landmark, Loader2, LogIn, Orbit, PlugZap, UserRound, XCircle, type LucideIcon } from 'lucide-react';
+import { Bell, CheckCircle2, Smartphone, ChevronRight, Landmark, Loader2, LogIn, Orbit, PlugZap, UserRound, XCircle, type LucideIcon } from 'lucide-react';
 import { orbitaStatus, testAccount, testOrbita, vistoHa, type OrbitaStatus } from '../../lib/connections';
 import { testGithubToken } from '../../lib/githubSync';
 import { askNotifPermission, lembretesOn, notifAvailable, notifPermission, setLembretes, testNotification, type NotifPerm } from '../../lib/notifications';
-import { connectOrbita, isIOS } from '../../lib/orbitaBridge';
+import { connectOrbita, isIOS, openOrbita } from '../../lib/orbitaBridge';
+import firebaseConfig from '../../../firebase-applet-config.json';
 
-type Status = 'ok' | 'warn' | 'off';
-interface Conn {
+export type Status = 'ok' | 'warn' | 'off';
+export interface Conn {
   id: string;
   name: string;
   icon: LucideIcon;
@@ -20,7 +21,7 @@ interface Conn {
 }
 type Result = { ok: boolean; msg: string };
 
-interface Props {
+export interface ConnectionsProps {
   userEmail?: string | null;
   hasGithubToken: boolean;
   onSaveGithubToken: (token: string) => void;
@@ -41,14 +42,14 @@ const btn = 'flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px]
 const btnPrimary = `${btn} bg-[#1c1c1e] dark:bg-white text-white dark:text-slate-900`;
 const btnSecondary = `${btn} bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100`;
 
-export default function ConnectionsGroup(props: Props) {
-  const [open, setOpen] = useState<string | null>(null);
-  const [testing, setTesting] = useState<string | null>(null);
-  const [results, setResults] = useState<Record<string, Result>>({});
+/** Conexões do Financy com o estado de cada uma (usado no menu e na tela de conexões). */
+export function useConnections(props: ConnectionsProps): Conn[] {
   const [orbita, setOrbita] = useState<OrbitaStatus | undefined>(undefined);
   const [perm, setPerm] = useState<NotifPerm>('unavailable');
   const [lembretes, setLemb] = useState(lembretesOn());
   const [tokenDraft, setTokenDraft] = useState('');
+  const [shortcut, setShortcut] = useState<'idle' | 'copied' | 'manual'>('idle');
+  const [manualKey, setManualKey] = useState('');
 
   const loadOrbita = useCallback(() => {
     orbitaStatus()
@@ -91,6 +92,11 @@ export default function ConnectionsGroup(props: Props) {
                   ? `${orbitaRecente ? 'Conectado' : 'Sem notícias'} · visto ${vistoHa(orbita.visto)}`
                   : 'Saldo, Apple Pay e aparência no Órbita',
             login: { label: orbita ? 'Reconectar' : 'Conectar', run: () => connectOrbita(props.getShortcutKey()) },
+            extra: orbita ? (
+              <button type="button" onClick={() => openOrbita('financas')} className="text-sm font-semibold text-violet-600 dark:text-violet-400">
+                Abrir o Órbita ›
+              </button>
+            ) : undefined,
             test: async () => {
               const m = await testOrbita();
               loadOrbita();
@@ -138,6 +144,56 @@ export default function ConnectionsGroup(props: Props) {
             Token restrito ao repositório financy, só com a permissão Actions (leitura e escrita). Fica salvo apenas neste aparelho.
           </p>
         </form>
+      ),
+    },
+    {
+      id: 'atalho',
+      name: 'Atalho do iPhone',
+      icon: Smartphone,
+      color: 'text-indigo-500',
+      status: 'ok',
+      detail: 'Chave para o Atalho registrar compras no Financy',
+      login: {
+        label: shortcut === 'copied' ? 'Chave copiada' : 'Copiar chave',
+        run: async () => {
+          const key = props.getShortcutKey();
+          if (!key) return;
+          try {
+            await navigator.clipboard.writeText(key);
+            setShortcut('copied');
+          } catch {
+            setManualKey(key);
+            setShortcut('manual');
+          }
+        },
+      },
+      test: async () => {
+        const key = props.getShortcutKey();
+        if (!key) throw new Error('Sem chave: entre de novo na conta.');
+        const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${firebaseConfig.apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(key)}`,
+        }).catch(() => null);
+        if (!res) throw new Error('Sem resposta do Google. Confira a internet.');
+        if (!res.ok) throw new Error('A chave não vale mais: copie de novo e cole no Atalho.');
+        return 'A chave funciona: o Atalho consegue registrar compras';
+      },
+      extra: (
+        <div className="space-y-2">
+          {shortcut === 'manual' && (
+            <input
+              readOnly
+              aria-label="Chave do Atalho"
+              value={manualKey}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+            />
+          )}
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            {shortcut === 'copied' ? 'Cole no começo do Atalho. ' : ''}Quem tiver essa chave acessa os seus dados financeiros: cole só no seu Atalho e não compartilhe o Atalho.
+          </p>
+        </div>
       ),
     },
     {
@@ -194,6 +250,15 @@ export default function ConnectionsGroup(props: Props) {
     },
   ];
 
+  return conns;
+}
+
+export default function ConnectionsGroup(props: ConnectionsProps) {
+  const [open, setOpen] = useState<string | null>(null);
+  const [testing, setTesting] = useState<string | null>(null);
+  const [results, setResults] = useState<Record<string, Result>>({});
+  const conns = useConnections(props);
+
   const testar = async (c: Conn) => {
     if (!c.test || testing) return;
     setTesting(c.id);
@@ -209,7 +274,6 @@ export default function ConnectionsGroup(props: Props) {
 
   return (
     <section className="space-y-2">
-      <h3 className="px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Contas e conexões</h3>
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
         {conns.map((c) => {
           const Icon = c.icon;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Trash2, X, Plus, TrendingDown, TrendingUp, PiggyBank } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CategoryItem } from '../../App';

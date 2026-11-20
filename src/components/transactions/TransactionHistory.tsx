@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { Search, Filter, ArrowUpRight, ArrowDownRight, Tag, Calendar, Trash2, Edit2, PlusCircle, X, PiggyBank, FolderPlus, Download, Upload, FileJson, FileSpreadsheet, List, CalendarRange } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Filter, ArrowUpRight, ArrowDownRight, Tag, Calendar, Trash2, Edit2, PlusCircle, X, PiggyBank, FolderPlus, List, CalendarRange } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { CategoryItem, Transaction } from '../../App';
 import { compareNewestFirst, formatDateTime } from '../../lib/transactions';
@@ -21,10 +21,6 @@ interface TransactionHistoryProps {
   onEditTransaction?: (transaction: Transaction) => void;
   onOpenNewTransaction?: () => void;
   onOpenManageCategories?: () => void;
-  onOpenNewCategory?: (type?: string) => void;
-  onExportJSON?: () => void;
-  onExportCSV?: () => void;
-  onImportJSON?: (data: any) => void;
   formatCurrency?: (val: number) => string;
 }
 
@@ -39,10 +35,6 @@ export default function TransactionHistory({
   onEditTransaction,
   onOpenNewTransaction,
   onOpenManageCategories,
-  onOpenNewCategory,
-  onExportJSON,
-  onExportCSV,
-  onImportJSON,
   formatCurrency = (val) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val),
 }: TransactionHistoryProps) {
@@ -51,27 +43,7 @@ export default function TransactionHistory({
   const [periodFilter, setPeriodFilter] = useState<'all' | 'this_month' | 'last_30'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'weekly'>('list');
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !onImportJSON) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        onImportJSON(json);
-        alert('Dados importados com sucesso!');
-      } catch (err) {
-        alert('Erro ao ler o arquivo JSON. Verifique o formato.');
-      }
-    };
-    reader.readAsText(file);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   // Normalize categories for grouped select
   const normalizedCategories: CategoryItem[] = useMemo(() => {

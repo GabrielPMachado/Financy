@@ -8,3 +8,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** versão do package.json, injetada no build */
+declare const __APP_VERSION__: string;

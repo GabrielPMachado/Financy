@@ -1,15 +1,9 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 export interface ChartDataItem {
   name: string;
   value: number;
-}
-
-export interface ChartsColors {
-  textPrimary?: string;
-  textSecondary?: string;
-  accent?: string;
 }
 
 export interface ChartsProps {
@@ -19,14 +13,8 @@ export interface ChartsProps {
   getCategoryStyle?: (categoryName: string) => { color: string };
   onSliceClick?: (data: any, chartType: 'income' | 'investment' | 'expense', chartTitle: string) => void;
   onChartClick?: (chartType: 'income' | 'investment' | 'expense', chartTitle: string) => void;
-  colors?: ChartsColors;
 }
 
-const defaultColors: Required<ChartsColors> = {
-  textPrimary: '#f8fafc',
-  textSecondary: '#94a3b8',
-  accent: '#10b981',
-};
 
 const categoryPalette = [
   '#10b981', // Emerald
@@ -80,7 +68,6 @@ const Charts = ({
   getCategoryStyle = defaultGetCategoryStyle,
   onSliceClick = () => {},
   onChartClick = () => {},
-  colors = defaultColors,
 }: ChartsProps) => {
   const chartData = [
     { type: 'income' as const, title: 'Distribuição de Receitas', data: incomeData, accentColor: '#10b981' },

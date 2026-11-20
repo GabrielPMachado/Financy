@@ -1,23 +1,15 @@
 import React, { memo } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import { RefreshCw, Calendar, ChevronLeft, ChevronRight, ChevronDown, History, Plus, LogOut, Orbit } from 'lucide-react';
+import { RefreshCw, ChevronLeft, ChevronRight, ChevronDown, History, Plus, Orbit } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import 'react-datepicker/dist/react-datepicker.css';
 
 registerLocale('pt-BR', ptBR);
 
-export interface HeaderColors {
-  accent?: string;
-  textPrimary?: string;
-  textSecondary?: string;
-  border?: string;
-}
-
 export type SaveStatusType = 'saving' | 'error' | 'local' | 'db' | 'saved';
 
 export interface HeaderProps {
-  colors?: HeaderColors;
   convertedFilterDate?: Date | null;
   monthFilter?: string;
   setMonthFilter?: (month: string) => void;
@@ -28,8 +20,6 @@ export interface HeaderProps {
   income?: number;
   expense?: number;
   userName?: string;
-  userEmail?: string;
-  onLogout?: () => void;
   /** Abre o Órbita (só no iPhone). */
   onOpenOrbita?: () => void;
   onOpenNewTransaction?: () => void;
@@ -55,12 +45,6 @@ export interface HeaderProps {
   syncMessage?: string;
 }
 
-const defaultColors: Required<HeaderColors> = {
-  accent: '#10b981',
-  textPrimary: '#f8fafc',
-  textSecondary: '#94a3b8',
-  border: 'rgba(255, 255, 255, 0.1)',
-};
 
 const CustomYearHeader = ({
   date,
@@ -121,7 +105,6 @@ const CustomYearHeader = ({
 const MONTH_LABELS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 const Header = ({
-  colors = defaultColors,
   convertedFilterDate,
   monthFilter = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
   setMonthFilter = () => {},
@@ -130,8 +113,6 @@ const Header = ({
   income = 0,
   expense = 0,
   userName,
-  userEmail,
-  onLogout,
   onOpenOrbita,
   onOpenNewTransaction,
   saveStatus = 'saved',

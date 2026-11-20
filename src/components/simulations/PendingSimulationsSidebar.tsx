@@ -1,22 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Clock, 
-  X, 
-  CheckCircle2, 
-  DollarSign, 
-  Sparkles, 
-  TrendingUp,
-  AlertCircle,
-  Trash2,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  CheckSquare,
-  Check,
-  Edit2,
-  Copy
-} from 'lucide-react';
+import { Clock, X, CheckCircle2, Trash2, Calendar, ChevronLeft, ChevronRight, CheckSquare, Check, Edit2, Copy } from 'lucide-react';
 
 export interface DailyBreakdownItem {
   id: string;

@@ -12,12 +12,8 @@ import {
   TrendingUp,
   Plus,
   Trash2,
-  Sparkles,
-  Loader2,
-  Send,
   Info,
 } from 'lucide-react';
-import { askPlanningAi, isGeminiConfigured } from '../../lib/gemini';
 import CurrencyInput from '../common/CurrencyInput';
 
 export interface PlannedDebt {
@@ -38,7 +34,6 @@ export interface PlannedInvestment {
 
 export interface PlanningEdgePanelProps {
   /** Saldo real atual, só exibido como referência — nunca alterado por aqui. */
-  currentBalance: number;
   plannedDebts: PlannedDebt[];
   setPlannedDebts: React.Dispatch<React.SetStateAction<PlannedDebt[]>>;
   plannedInvestments: PlannedInvestment[];
@@ -49,13 +44,12 @@ export interface PlanningEdgePanelProps {
   externalOpenSignal?: number;
 }
 
-type Tab = 'debts' | 'investments' | 'ai';
+type Tab = 'debts' | 'investments';
 
 const emptyDebtForm = { description: '', amount: '', dueDate: '', notes: '' };
 const emptyInvestmentForm = { description: '', amount: '', targetDate: '', notes: '' };
 
 export const PlanningEdgePanel: React.FC<PlanningEdgePanelProps> = ({
-  currentBalance,
   plannedDebts,
   setPlannedDebts,
   plannedInvestments,
@@ -74,10 +68,6 @@ export const PlanningEdgePanel: React.FC<PlanningEdgePanelProps> = ({
   const [debtForm, setDebtForm] = useState(emptyDebtForm);
   const [investmentForm, setInvestmentForm] = useState(emptyInvestmentForm);
 
-  const [aiQuestion, setAiQuestion] = useState('');
-  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
 
   const totalPlannedDebts = useMemo(
     () => plannedDebts.reduce((acc, d) => acc + d.amount, 0),
@@ -116,41 +106,6 @@ export const PlanningEdgePanel: React.FC<PlanningEdgePanelProps> = ({
     };
     setPlannedInvestments((prev) => [newInvestment, ...prev]);
     setInvestmentForm(emptyInvestmentForm);
-  };
-
-  const runAi = async (question?: string) => {
-    setAiLoading(true);
-    setAiError(null);
-    setAiAnswer(null);
-    try {
-      const answer = await askPlanningAi({
-        currentBalance,
-        plannedDebts: plannedDebts.map(({ description, amount, dueDate, notes }) => ({
-          description,
-          amount,
-          dueDate,
-          notes,
-        })),
-        plannedInvestments: plannedInvestments.map(({ description, amount, targetDate, notes }) => ({
-          description,
-          amount,
-          targetDate,
-          notes,
-        })),
-        question,
-      });
-      setAiAnswer(answer);
-    } catch (err: any) {
-      setAiError(err?.message || 'Falha ao consultar a IA. Tente novamente.');
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const handleAskAi = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiQuestion.trim()) return;
-    runAi(aiQuestion.trim());
   };
 
   return (
@@ -251,16 +206,6 @@ export const PlanningEdgePanel: React.FC<PlanningEdgePanelProps> = ({
                 >
                   <TrendingUp className="w-3.5 h-3.5" />
                   Investimentos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab('ai')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-bold transition ${
-                    tab === 'ai' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  IA
                 </button>
               </div>
 
@@ -420,65 +365,6 @@ export const PlanningEdgePanel: React.FC<PlanningEdgePanelProps> = ({
                   </>
                 )}
 
-                {tab === 'ai' && (
-                  <div className="space-y-3">
-                    {!isGeminiConfigured() && (
-                      <div className="px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-xs">
-                        Nenhuma chave de IA configurada. Adicione uma chave gratuita do Google AI Studio em{' '}
-                        <code className="font-mono">GEMINI_API_KEY</code> no seu <code className="font-mono">.env.local</code>.
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => runAi(undefined)}
-                      disabled={aiLoading || !isGeminiConfigured()}
-                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl transition active:scale-95"
-                    >
-                      {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      Gerar análise do meu planejamento
-                    </button>
-
-                    <form onSubmit={handleAskAi} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={aiQuestion}
-                        onChange={(e) => setAiQuestion(e.target.value)}
-                        placeholder="Pergunte algo sobre seu planejamento..."
-                        disabled={!isGeminiConfigured()}
-                        className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-50"
-                      />
-                      <button
-                        type="submit"
-                        disabled={aiLoading || !isGeminiConfigured() || !aiQuestion.trim()}
-                        className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40 transition active:scale-95"
-                        title="Perguntar"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                    </form>
-
-                    {aiError && (
-                      <div className="px-3 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-300 text-xs">
-                        {aiError}
-                      </div>
-                    )}
-
-                    {aiAnswer && (
-                      <div className="px-3.5 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line">
-                        <div className="flex items-center gap-1.5 mb-1.5 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wide">
-                          <Sparkles className="w-3 h-3" />
-                          Assistente
-                        </div>
-                        {aiAnswer}
-                      </div>
-                    )}
-
-                    <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 pt-1">
-                      Respostas geradas por IA, podem conter erros — não é recomendação financeira profissional.
-                    </p>
-                  </div>
-                )}
               </div>
             </motion.div>
           </>
