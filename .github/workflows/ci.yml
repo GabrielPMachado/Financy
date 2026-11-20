@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   verificar:
-    name: Tipos e build
+    name: Tipos, testes e build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,6 +32,9 @@ jobs:
 
       - name: Checagem de tipos
         run: npm run lint
+
+      - name: Testes
+        run: npm test
 
       - name: Build de produção
         run: npm run build
