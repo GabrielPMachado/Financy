@@ -135,4 +135,5 @@ jobs:
         with:
           name: Financy-ipa
           path: Financy.ipa
-          retention-days: 14
+          # repo público: qualquer conta do GitHub baixa os artifacts; guarda só o tempo de instalar
+          retention-days: 3
