@@ -131,7 +131,7 @@ jobs:
           zip -qry Financy.ipa Payload
           ls -lh Financy.ipa
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: Financy-ipa
           path: Financy.ipa

@@ -70,7 +70,7 @@ jobs:
 
       - name: Cache do Chromium (Playwright)
         if: steps.plan.outputs.refresh == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -92,7 +92,7 @@ jobs:
       # Chave: o secret MEUPLUGGY_SESSION_KEY; sem ele, usa o PLUGGY_CLIENT_SECRET.
       - name: Restaurar sessão do Meu Pluggy
         if: steps.plan.outputs.refresh == 'true'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .auth-cache
           key: meupluggy-session-enc-${{ github.run_id }}
@@ -138,7 +138,7 @@ jobs:
 
       - name: Salvar sessão do Meu Pluggy
         if: always() && steps.seal.outputs.ok == 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: .auth-cache
           key: meupluggy-session-enc-${{ github.run_id }}
