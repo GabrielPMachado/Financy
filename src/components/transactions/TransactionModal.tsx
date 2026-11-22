@@ -942,88 +942,86 @@ export default function TransactionModal({
                           )}
                         </div>
 
-                        {!isEditing && (
-                          <div className="space-y-2.5 pt-1 border-t border-slate-200 dark:border-slate-800">
-                            <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2">
-                              TIPO DE REPETIÇÃO
-                            </label>
-                            <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium">
-                              <button
-                                type="button"
-                                onClick={() => setForm({ ...form, repeatType: 'single' })}
-                                className={`py-2 rounded-lg transition text-center ${
-                                  (form.repeatType || 'single') === 'single'
-                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold border border-slate-300 dark:border-slate-700'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                                }`}
-                              >
-                                Única
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setForm({ ...form, repeatType: 'installment', installmentsCount: form.installmentsCount || 2 })}
-                                className={`py-2 rounded-lg transition text-center ${
-                                  form.repeatType === 'installment'
-                                    ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold border border-indigo-200 dark:border-indigo-800/50'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                                }`}
-                              >
-                                Parcelada
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setForm({ ...form, repeatType: 'recurring', recurringMonths: form.recurringMonths || 6 })}
-                                className={`py-2 rounded-lg transition text-center ${
-                                  form.repeatType === 'recurring'
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-800/50'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                                }`}
-                              >
-                                Recorrente
-                              </button>
-                            </div>
-
-                            {form.repeatType === 'installment' && (
-                              <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 p-3 rounded-xl space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-xs font-medium text-indigo-200">Número de Parcelas</label>
-                                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{form.installmentsCount || 2}x</span>
-                                </div>
-                                <input
-                                  type="number"
-                                  min={2}
-                                  max={72}
-                                  value={form.installmentsCount || 2}
-                                  onChange={(e) => {
-                                    const count = Math.max(2, Math.min(72, parseInt(e.target.value) || 2));
-                                    setForm({ ...form, installmentsCount: count });
-                                  }}
-                                  className="w-full bg-slate-50 dark:bg-slate-950 text-indigo-700 dark:text-indigo-300 text-sm px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800/50 focus:border-indigo-500 focus:outline-none"
-                                />
-                              </div>
-                            )}
-
-                            {form.repeatType === 'recurring' && (
-                              <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 p-3 rounded-xl space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-xs font-medium text-emerald-200">Repetir por Quantos Meses?</label>
-                                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{form.recurringMonths || 6} meses</span>
-                                </div>
-                                <select
-                                  value={form.recurringMonths || 6}
-                                  onChange={(e) => setForm({ ...form, recurringMonths: parseInt(e.target.value) || 6 })}
-                                  className="w-full bg-slate-50 dark:bg-slate-950 text-emerald-700 dark:text-emerald-300 text-sm px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:outline-none"
-                                >
-                                  <option value={2}>2 meses</option>
-                                  <option value={3}>3 meses</option>
-                                  <option value={6}>6 meses (Semestre)</option>
-                                  <option value={12}>12 meses (1 Ano)</option>
-                                  <option value={24}>24 meses (2 Anos)</option>
-                                </select>
-                              </div>
-                            )}
+                        <div className="space-y-2.5 pt-1 border-t border-slate-200 dark:border-slate-800">
+                          <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-2">
+                            TIPO DE REPETIÇÃO
+                          </label>
+                          <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium">
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, repeatType: 'single' })}
+                              className={`py-2 rounded-lg transition text-center ${
+                                (form.repeatType || 'single') === 'single'
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold border border-slate-300 dark:border-slate-700'
+                                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                              }`}
+                            >
+                              Única
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, repeatType: 'installment', installmentsCount: form.installmentsCount || 2 })}
+                              className={`py-2 rounded-lg transition text-center ${
+                                form.repeatType === 'installment'
+                                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-semibold border border-indigo-200 dark:border-indigo-800/50'
+                                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                              }`}
+                            >
+                              Parcelada
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, repeatType: 'recurring', recurringMonths: form.recurringMonths || 6 })}
+                              className={`py-2 rounded-lg transition text-center ${
+                                form.repeatType === 'recurring'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-800/50'
+                                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                              }`}
+                            >
+                              Recorrente
+                            </button>
                           </div>
-                        )}
+
+                          {form.repeatType === 'installment' && (
+                            <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 p-3 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-indigo-200">Número de Parcelas</label>
+                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{form.installmentsCount || 2}x</span>
+                              </div>
+                              <input
+                                type="number"
+                                min={2}
+                                max={72}
+                                value={form.installmentsCount || 2}
+                                onChange={(e) => {
+                                  const count = Math.max(2, Math.min(72, parseInt(e.target.value) || 2));
+                                  setForm({ ...form, installmentsCount: count });
+                                }}
+                                className="w-full bg-slate-50 dark:bg-slate-950 text-indigo-700 dark:text-indigo-300 text-sm px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800/50 focus:border-indigo-500 focus:outline-none"
+                              />
+                            </div>
+                          )}
+
+                          {form.repeatType === 'recurring' && (
+                            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 p-3 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-emerald-200">Repetir por Quantos Meses?</label>
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{form.recurringMonths || 6} meses</span>
+                              </div>
+                              <select
+                                value={form.recurringMonths || 6}
+                                onChange={(e) => setForm({ ...form, recurringMonths: parseInt(e.target.value) || 6 })}
+                                className="w-full bg-slate-50 dark:bg-slate-950 text-emerald-700 dark:text-emerald-300 text-sm px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800/50 focus:border-emerald-500 focus:outline-none"
+                              >
+                                <option value={2}>2 meses</option>
+                                <option value={3}>3 meses</option>
+                                <option value={6}>6 meses (Semestre)</option>
+                                <option value={12}>12 meses (1 Ano)</option>
+                                <option value={24}>24 meses (2 Anos)</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div className="shrink-0 pt-4 border-t border-slate-200 dark:border-slate-800 mt-4 flex gap-2.5">
