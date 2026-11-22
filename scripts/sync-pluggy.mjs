@@ -78,13 +78,14 @@ async function authenticate(clientId, clientSecret) {
 async function fetchAllTransactions(apiKey, accountId, from, to) {
   // Endpoint v2 (o /transactions antigo foi desativado pela Pluggy).
   // Paginação por cursor: `next` vem preenchido quando há mais resultados.
+  // `next` é uma query pronta ("?accountId=…&after=…"): a próxima página vai só com o `after`.
   const all = [];
-  let cursor;
+  let after;
   for (let page = 0; page < 20; page++) {
-    const data = await pluggy('/v2/transactions', apiKey, { accountId, dateFrom: from, dateTo: to, cursor });
+    const data = await pluggy('/v2/transactions', apiKey, { accountId, dateFrom: from, dateTo: to, after });
     all.push(...data.results);
-    if (!data.next || data.results.length === 0) return all;
-    cursor = data.next;
+    after = data.next ? new URLSearchParams(String(data.next).replace(/^\?/, '')).get('after') ?? undefined : undefined;
+    if (!after || data.results.length === 0) return all;
   }
   console.warn('Aviso: limite de páginas atingido; avance SYNC_FROM se faltar algo.');
   return all;
