@@ -451,253 +451,251 @@ export default function SimulacaoGanhosModal({ isOpen, onClose, onSave, editingS
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto"
+        onClick={handleResetModal}
+      >
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto"
-          onClick={handleResetModal}
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          transition={{ type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-7 rounded-3xl w-full max-w-xl shadow-2xl my-8 relative max-h-[90vh] overflow-y-auto custom-scrollbar"
+          onClick={(e) => e.stopPropagation()}
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            transition={{ type: 'tween', duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-7 rounded-3xl w-full max-w-xl shadow-2xl my-8 relative max-h-[90vh] overflow-y-auto custom-scrollbar"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Soft Ambient Glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          {/* Soft Ambient Glow */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-4 relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-950/50 text-white">
-                  <Calculator className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    {editingSimulation ? 'Editar Simulação' : 'Calculadora Freelancer'}
-                    <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {editingSimulation
-                      ? 'Ajuste os horários e valores desta semana já salva'
-                      : 'Selecione a semana no calendário e configure suas diárias e horários'}
-                  </p>
-                </div>
+          {/* Header */}
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-950/50 text-white">
+                <Calculator className="w-5 h-5" />
               </div>
-
-              <button
-                onClick={handleResetModal}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Calendário Estilizado Selecionador de Semana */}
-            {renderStylizedCalendar()}
-
-            {/* Ações Rápidas de Seleção da Semana */}
-            <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Dias da Semana ({diasDaSemanaComData[0].dateFormatted} à {diasDaSemanaComData[6].dateFormatted})</span>
-              </span>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleToggleAllWeekDays}
-                  className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border transition flex items-center gap-1.5 cursor-pointer ${
-                    todosSelecionados
-                      ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                      : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                  }`}
-                >
-                  {todosSelecionados ? <Square className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
-                  <span>{todosSelecionados ? 'Desmarcar Semana Toda' : 'Marcar Semana Toda'}</span>
-                </button>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  {editingSimulation ? 'Editar Simulação' : 'Calculadora Freelancer'}
+                  <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {editingSimulation
+                    ? 'Ajuste os horários e valores desta semana já salva'
+                    : 'Selecione a semana no calendário e configure suas diárias e horários'}
+                </p>
               </div>
             </div>
 
-            {/* Days Selection List */}
-            <div className="space-y-2.5 mb-5 max-h-[300px] overflow-y-auto pr-1 relative z-10 custom-scrollbar">
-              {diasDaSemanaComData.map(dia => {
-                const isChecked = !!diasTrabalhados[dia.id];
-                const diaData = diasTrabalhados[dia.id];
+            <button
+              onClick={handleResetModal}
+              className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-                return (
-                  <div
-                    key={dia.id}
-                    className={`p-3 rounded-2xl border transition-all duration-200 ${
-                      isChecked
-                        ? 'bg-white/90 dark:bg-slate-900/90 border-emerald-500/40 shadow-md shadow-emerald-950/20'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      {/* Checkbox and Day Label with Specific Date */}
-                      <label className="flex items-center space-x-3 cursor-pointer group select-none">
-                        <div
-                          onClick={() => handleDayChange(dia.id)}
-                          className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                            isChecked
-                              ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-xs'
-                              : 'border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-950/80 group-hover:border-slate-400 dark:group-hover:border-slate-600'
-                          }`}
-                        >
-                          {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-xs sm:text-sm font-semibold transition ${
-                              isChecked ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200'
-                            }`}
-                          >
-                            {dia.nome}
-                          </span>
-                          <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-800">
-                            {dia.dateFormatted}
-                          </span>
-                          {dia.destaque && (
-                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                              Dom 100%
-                            </span>
-                          )}
-                          {getHolidayName(dia.dateISO) && (
-                            <span
-                              title={getHolidayName(dia.dateISO) ?? undefined}
-                              className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30"
-                            >
-                              Feriado 100%
-                            </span>
-                          )}
-                        </div>
-                      </label>
+          {/* Calendário Estilizado Selecionador de Semana */}
+          {renderStylizedCalendar()}
 
-                      {/* Time Controls & Pizza Toggle */}
-                      {isChecked && diaData && (
-                        <motion.div
-                          initial={{ opacity: 0, x: 10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center justify-center flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800"
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                            <TimePicker
-                              value={diaData.inicio}
-                              onChange={v => handleTimeChange(dia.id, 'inicio', v)}
-                            />
-                            <span className="text-slate-400 dark:text-slate-500 font-medium">até</span>
-                            <TimePicker
-                              value={diaData.fim}
-                              onChange={v => handleTimeChange(dia.id, 'fim', v)}
-                            />
-                          </div>
+          {/* Ações Rápidas de Seleção da Semana */}
+          <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+              <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Dias da Semana ({diasDaSemanaComData[0].dateFormatted} à {diasDaSemanaComData[6].dateFormatted})</span>
+            </span>
 
-                          {/* Pizza Toggle Centralizado */}
-                          <div className="flex items-center justify-center sm:border-l sm:border-slate-200 dark:sm:border-slate-800 sm:pl-2">
-                            <button
-                              type="button"
-                              title={diaData.comeuPizza ? 'Comer pizza ativado (-R$10.00)' : 'Clique se comeu pizza (-R$10.00)'}
-                              onClick={() => handleTimeChange(dia.id, 'comeuPizza', !diaData.comeuPizza)}
-                              className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                                diaData.comeuPizza
-                                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300 shadow-xs'
-                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700'
-                              }`}
-                            >
-                              <Pizza className={`w-3.5 h-3.5 ${diaData.comeuPizza ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                              <span>{diaData.comeuPizza ? 'Pizza (-R$10)' : 'Pizza'}</span>
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Calculated Result Card */}
-            {resultado !== null && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-slate-900 border border-emerald-200 dark:border-emerald-800/50 p-4 rounded-2xl text-center mb-5 relative overflow-hidden shadow-lg shadow-emerald-950/40"
-              >
-                <div className="flex justify-between items-center px-2">
-                  <div className="text-left">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600/90 dark:text-emerald-300/80 block">
-                      Estimativa Freelance ({totalDiasSelecionados} {totalDiasSelecionados === 1 ? 'dia' : 'dias'})
-                    </span>
-                    <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300 font-mono tracking-tight">
-                      {resultado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                  </div>
-                  <div className="icon-tile w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Modal Actions */}
-            <div className="flex flex-wrap items-center gap-3 justify-end pt-3 border-t border-slate-200 dark:border-slate-800 relative z-10">
-              {totalDiasSelecionados > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDiasTrabalhados({});
-                    setResultado(null);
-                  }}
-                  className="mr-auto text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1 py-2 px-1 transition cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Limpar seleção</span>
-                </button>
-              )}
-
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleResetModal}
-                className="py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+                onClick={handleToggleAllWeekDays}
+                className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border transition flex items-center gap-1.5 cursor-pointer ${
+                  todosSelecionados
+                    ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                }`}
               >
-                Cancelar
+                {todosSelecionados ? <Square className="w-3.5 h-3.5" /> : <CheckSquare className="w-3.5 h-3.5" />}
+                <span>{todosSelecionados ? 'Desmarcar Semana Toda' : 'Marcar Semana Toda'}</span>
               </button>
+            </div>
+          </div>
 
-              {resultado !== null && resultado > 0 ? (
-                <button
-                  type="button"
-                  onClick={handleSalvarPendencia}
-                  className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/50 flex items-center gap-2 transform active:scale-95 cursor-pointer"
-                >
-                  <Clock className="w-4 h-4" />
-                  <span>Adicionar aos Pendentes</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={calcularGanhos}
-                  disabled={totalDiasSelecionados === 0}
-                  className={`py-2.5 px-5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg ${
-                    totalDiasSelecionados > 0
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/50 transform active:scale-95 cursor-pointer'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+          {/* Days Selection List */}
+          <div className="space-y-2.5 mb-5 max-h-[300px] overflow-y-auto pr-1 relative z-10 custom-scrollbar">
+            {diasDaSemanaComData.map(dia => {
+              const isChecked = !!diasTrabalhados[dia.id];
+              const diaData = diasTrabalhados[dia.id];
+
+              return (
+                <div
+                  key={dia.id}
+                  className={`p-3 rounded-2xl border transition-all duration-200 ${
+                    isChecked
+                      ? 'bg-white/90 dark:bg-slate-900/90 border-emerald-500/40 shadow-md shadow-emerald-950/20'
+                      : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
-                  <Calculator className="w-4 h-4" />
-                  <span>Calcular Valor</span>
-                </button>
-              )}
-            </div>
-          </motion.div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    {/* Checkbox and Day Label with Specific Date */}
+                    <label className="flex items-center space-x-3 cursor-pointer group select-none">
+                      <div
+                        onClick={() => handleDayChange(dia.id)}
+                        className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                          isChecked
+                            ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-xs'
+                            : 'border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-950/80 group-hover:border-slate-400 dark:group-hover:border-slate-600'
+                        }`}
+                      >
+                        {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs sm:text-sm font-semibold transition ${
+                            isChecked ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200'
+                          }`}
+                        >
+                          {dia.nome}
+                        </span>
+                        <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-800">
+                          {dia.dateFormatted}
+                        </span>
+                        {dia.destaque && (
+                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                            Dom 100%
+                          </span>
+                        )}
+                        {getHolidayName(dia.dateISO) && (
+                          <span
+                            title={getHolidayName(dia.dateISO) ?? undefined}
+                            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                          >
+                            Feriado 100%
+                          </span>
+                        )}
+                      </div>
+                    </label>
+
+                    {/* Time Controls & Pizza Toggle */}
+                    {isChecked && diaData && (
+                      <motion.div
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center justify-center flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-2 rounded-xl border border-slate-200 dark:border-slate-800"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                          <TimePicker
+                            value={diaData.inicio}
+                            onChange={v => handleTimeChange(dia.id, 'inicio', v)}
+                          />
+                          <span className="text-slate-400 dark:text-slate-500 font-medium">até</span>
+                          <TimePicker
+                            value={diaData.fim}
+                            onChange={v => handleTimeChange(dia.id, 'fim', v)}
+                          />
+                        </div>
+
+                        {/* Pizza Toggle Centralizado */}
+                        <div className="flex items-center justify-center sm:border-l sm:border-slate-200 dark:sm:border-slate-800 sm:pl-2">
+                          <button
+                            type="button"
+                            title={diaData.comeuPizza ? 'Comer pizza ativado (-R$10.00)' : 'Clique se comeu pizza (-R$10.00)'}
+                            onClick={() => handleTimeChange(dia.id, 'comeuPizza', !diaData.comeuPizza)}
+                            className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+                              diaData.comeuPizza
+                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300 shadow-xs'
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700'
+                            }`}
+                          >
+                            <Pizza className={`w-3.5 h-3.5 ${diaData.comeuPizza ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                            <span>{diaData.comeuPizza ? 'Pizza (-R$10)' : 'Pizza'}</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Calculated Result Card */}
+          {resultado !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-slate-900 border border-emerald-200 dark:border-emerald-800/50 p-4 rounded-2xl text-center mb-5 relative overflow-hidden shadow-lg shadow-emerald-950/40"
+            >
+              <div className="flex justify-between items-center px-2">
+                <div className="text-left">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600/90 dark:text-emerald-300/80 block">
+                    Estimativa Freelance ({totalDiasSelecionados} {totalDiasSelecionados === 1 ? 'dia' : 'dias'})
+                  </span>
+                  <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300 font-mono tracking-tight">
+                    {resultado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </span>
+                </div>
+                <div className="icon-tile w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-300">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Modal Actions */}
+          <div className="flex flex-wrap items-center gap-3 justify-end pt-3 border-t border-slate-200 dark:border-slate-800 relative z-10">
+            {totalDiasSelecionados > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDiasTrabalhados({});
+                  setResultado(null);
+                }}
+                className="mr-auto text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1 py-2 px-1 transition cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Limpar seleção</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleResetModal}
+              className="py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
+            >
+              Cancelar
+            </button>
+
+            {resultado !== null && resultado > 0 ? (
+              <button
+                type="button"
+                onClick={handleSalvarPendencia}
+                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/50 flex items-center gap-2 transform active:scale-95 cursor-pointer"
+              >
+                <Clock className="w-4 h-4" />
+                <span>Adicionar aos Pendentes</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={calcularGanhos}
+                disabled={totalDiasSelecionados === 0}
+                className={`py-2.5 px-5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg ${
+                  totalDiasSelecionados > 0
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/50 transform active:scale-95 cursor-pointer'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                <Calculator className="w-4 h-4" />
+                <span>Calcular Valor</span>
+              </button>
+            )}
+          </div>
         </motion.div>
-      )}
+      </motion.div>
     </AnimatePresence>
   );
 }

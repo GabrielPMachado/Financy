@@ -21,6 +21,9 @@ on:
       - 'resources/**'
       - '.github/workflows/build-ios.yml'
 
+permissions:
+  contents: read
+
 jobs:
   ipa:
     runs-on: macos-26
